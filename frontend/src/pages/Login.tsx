@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { setCredentials } from "../store/slices/authSlice";
+import api from "../services/api";
 
 const Login = () => {
   const [email, setEmail] = useState("admin@velocity.com");
@@ -17,7 +18,7 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      const { data } = await axios.post("/api/auth/login", { email, password });
+      const { data } = await api.post("/auth/login", { email, password });
       dispatch(setCredentials(data));
       navigate("/");
     } catch (err) {
