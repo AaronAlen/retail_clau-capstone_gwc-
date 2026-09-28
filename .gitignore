@@ -1,0 +1,70 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Build and Production Outputs
+dist/
+build/
+out/
+.vite/
+*.tsbuildinfo
+
+# Environment & Secrets (Keep API keys and DB credentials private)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+!*.env.example
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data & Temporary Scratch Directories
+pids
+*.pid
+*.seed
+*.pid.lock
+scratch/
+temp/
+tmp/
+.tempmediaStorage/
+
+# Operating System files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# IDE & Editor configurations
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.sublime-workspace
+*.sublime-project
+*.swp
+*.swo
+
+# Terraform infrastructure state & secrets
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# Docker overrides
+docker-compose.override.yml

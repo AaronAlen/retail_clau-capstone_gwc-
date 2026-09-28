@@ -1,0 +1,10 @@
+aws_region            = "ap-south-1"
+backend_image         = "your-dockerhub-username/velocity-retail-backend:latest"
+enable_frontend       = false
+mongo_uri             = "mongodb+srv://<username>:<password>@cluster0.noxf0yh.mongodb.net/velocity_retail?retryWrites=true&w=majority"
+jwt_access_secret     = "your_jwt_access_secret"
+jwt_refresh_secret    = "your_jwt_refresh_secret"
+groq_api_key          = "your_groq_api_key"
+cloudinary_cloud_name = "yqs5ezyx"
+cloudinary_api_key    = "945519752313942"
+cloudinary_api_secret = "your_cloudinary_api_secret"

@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-[#F8F3EA] text-stone-900 font-sans min-h-screen antialiased selection:bg-orange-500/20 selection:text-orange-950;
+  background-image: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(234, 88, 12, 0.05), transparent),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(245, 158, 11, 0.04), transparent),
+    radial-gradient(ellipse 50% 50% at 10% 80%, rgba(217, 119, 6, 0.03), transparent);
+}
+
+.card {
+  @apply bg-white/95 backdrop-blur-md rounded-2xl border border-[#E5D7BE] p-5 shadow-sm shadow-stone-900/5 transition-all duration-300;
+}
+
+.card:hover {
+  @apply border-orange-500/50 shadow-md shadow-orange-950/5;
+}
+
+.btn-primary {
+  @apply bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-bold px-4 py-2 rounded-xl shadow-md shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98];
+}
+
+.btn-luxury {
+  @apply bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold px-4 py-2 rounded-xl shadow-md shadow-orange-600/20 transition-all hover:scale-[1.02];
+}
+
+.badge-fast {
+  @apply bg-amber-100/90 text-amber-900 border border-amber-300/80 font-bold text-xs px-2.5 py-1 rounded-full shadow-sm;
+}
+
+.badge-low {
+  @apply bg-rose-100/90 text-rose-800 border border-rose-300/80 font-bold text-xs px-2.5 py-1 rounded-full shadow-sm;
+}
+
+/* Sleek Luxury Translucent Frosted Glassmorphism System for 3D Viewport */
+.glass-panel {
+  background: rgba(18, 14, 24, 0.55) !important;
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+}
+
+.glass-pill {
+  background: rgba(28, 22, 36, 0.60) !important;
+  backdrop-filter: blur(16px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.28) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+}
+
+.glass-badge-amber {
+  background: rgba(254, 243, 199, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.85) !important;
+  box-shadow: 0 2px 12px rgba(245, 158, 11, 0.25) !important;
+}
+
+.glass-badge-sky {
+  background: rgba(240, 249, 255, 0.95) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+  border: 1.5px solid rgba(14, 165, 233, 0.85) !important;
+  box-shadow: 0 2px 12px rgba(14, 165, 233, 0.25) !important;
+}
+
+/* 🌟 LUXURY CUSTOM SCROLLBAR SYSTEM (Eliminates ugly browser default scrollbars everywhere) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(28, 22, 36, 0.35);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(245, 158, 11, 0.45);
+  border-radius: 9999px;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  transition: background 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(245, 158, 11, 0.85);
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(245, 158, 11, 0.45) rgba(28, 22, 36, 0.3);
+}
+
+/* Hide scrollbars when explicitly requested */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* 3D Viewport Tooltip Style */
+.tooltip-3d {
+  background: rgba(18, 14, 24, 0.92) !important;
+  backdrop-filter: blur(16px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(180%) !important;
+  border: 1.5px solid rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(245, 158, 11, 0.25) !important;
+}
+
+
