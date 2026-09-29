@@ -1636,15 +1636,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   return (
     <div
       ref={visualizerRootRef}
-      className={`relative w-full rounded-3xl overflow-hidden bg-slate-100 border border-[#E5D7BE] shadow-2xl transition-all duration-300 ${
-        isFullScreen ? "fixed inset-0 z-50 rounded-none border-none" : "h-[740px]"
+      className={`relative w-full rounded-3xl overflow-hidden bg-slate-100 border border-[#E5D7BE] shadow-2xl transition-all duration-300 isolate ${
+        isFullScreen ? "fixed inset-0 z-[100] rounded-none border-none" : "h-[740px] z-10"
       }`}
     >
       {/* 3D WebGL Canvas */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
 
       {/* 🌟 1. TOP HEADER BAR: STORE BRANDING, 3D SCOPE SEARCH & CONTROLS */}
-      <div className="absolute top-3 left-4 right-4 z-30 flex items-center justify-between gap-3 pointer-events-none">
+      <div className="absolute top-3 left-4 right-4 z-20 flex items-center justify-between gap-3 pointer-events-none">
         {/* Left: Department Store Badge */}
         <div
           onMouseEnter={() => {
@@ -1653,22 +1653,22 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="glass-panel px-3.5 py-2 rounded-2xl flex items-center gap-3 pointer-events-auto border border-amber-500/35 shadow-2xl shrink-0"
+          className="glass-panel px-3.5 py-1.5 rounded-2xl flex items-center gap-2.5 pointer-events-auto border border-amber-500/35 shadow-2xl shrink-0"
         >
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-stone-950 font-black text-sm shadow-md shadow-amber-500/25">
+          <div className="w-7 h-7 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-stone-950 font-black text-xs shadow-md shadow-amber-500/25 shrink-0">
             VR
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white drop-shadow-sm">
+              <h3 className="text-xs font-black uppercase tracking-wider text-white drop-shadow-sm whitespace-nowrap">
                 VELOCITY FLAGSHIP SHOWROOM
               </h3>
-              <span className="flex h-2 w-2 relative">
+              <span className="flex h-2 w-2 relative shrink-0">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
               </span>
             </div>
-            <p className="text-[10px] text-amber-300 font-semibold drop-shadow-sm">
+            <p className="text-[10px] text-amber-300 font-semibold drop-shadow-sm hidden xl:block whitespace-nowrap">
               5 Optimized Cupboards • All 60 Store SKUs Live with 3D DB Coordinates
             </p>
           </div>
@@ -1683,7 +1683,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="relative pointer-events-auto flex-1 max-w-md z-30"
+          className="relative pointer-events-auto flex-1 min-w-[200px] sm:min-w-[260px] md:min-w-[300px] max-w-md z-30"
         >
           <div className="relative flex items-center">
             <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 pointer-events-none" />
@@ -1711,7 +1711,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
           {/* Autocomplete Dropdown */}
           {isSearchOpen && searchResults.length > 0 && (
-            <div className="absolute top-full mt-1.5 left-0 right-0 max-h-72 overflow-y-auto rounded-2xl bg-stone-950/95 backdrop-blur-xl border border-amber-500/35 shadow-2xl p-1.5 space-y-1 custom-scrollbar">
+            <div className="absolute top-full mt-1.5 left-0 right-0 max-h-72 overflow-y-auto rounded-2xl bg-stone-950/95 backdrop-blur-xl border border-amber-500/35 shadow-2xl p-1.5 space-y-1 custom-scrollbar z-50">
               <div className="px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-amber-400 flex items-center justify-between border-b border-stone-800">
                 <span>Matching Products ({searchResults.length})</span>
                 <span className="text-stone-400">Click to lock 3D Scope</span>
@@ -1831,7 +1831,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="absolute top-16 left-4 bottom-14 z-20 w-80 max-w-[340px] pointer-events-auto flex flex-col animate-in fade-in slide-in-from-left duration-200"
+          className="absolute top-16 left-4 bottom-14 z-10 w-80 max-w-[340px] pointer-events-auto flex flex-col animate-in fade-in slide-in-from-left duration-200"
         >
           {/* Product Inspector Card */}
           <div className="glass-panel rounded-3xl p-3.5 flex flex-col h-full shadow-2xl border border-amber-500/35 overflow-hidden">
@@ -1954,7 +1954,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="absolute top-16 right-4 bottom-14 z-20 w-84 max-w-[345px] pointer-events-auto hidden lg:flex flex-col animate-in fade-in slide-in-from-right duration-200"
+          className="absolute top-16 right-4 bottom-14 z-10 w-84 max-w-[345px] pointer-events-auto hidden lg:flex flex-col animate-in fade-in slide-in-from-right duration-200"
         >
           <div className="glass-panel rounded-3xl p-3.5 flex flex-col h-full shadow-2xl border border-amber-500/35 overflow-hidden">
             {/* Pinned Header */}
@@ -2132,7 +2132,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       )}
 
       {/* 🌟 4. BOTTOM STATUS TICKER */}
-      <div className="absolute bottom-3 left-4 right-4 z-20 flex items-center justify-between pointer-events-none text-[10px] text-stone-400">
+      <div className="absolute bottom-3 left-4 right-4 z-10 flex items-center justify-between pointer-events-none text-[10px] text-stone-400">
         <div className="glass-panel px-3 py-1 rounded-xl pointer-events-auto flex items-center gap-2 border border-amber-500/20">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           <span>Interactive 3D Showroom: Hover any of the 60 items to inspect 3D DB coordinates</span>

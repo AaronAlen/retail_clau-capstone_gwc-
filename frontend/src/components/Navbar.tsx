@@ -32,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
   }, [showLogoutConfirm]);
 
   return (
-    <header className="flex items-center justify-between px-8 py-4 border-b border-[#E5D7BE] bg-[#F8F3EA]/90 backdrop-blur-2xl sticky top-0 z-30 shadow-sm">
+    <header className="flex items-center justify-between px-8 py-4 border-b border-[#E5D7BE] bg-[#F8F3EA]/90 backdrop-blur-2xl sticky top-0 z-40 shadow-sm">
       <div>
         <h2 className="text-xl font-extrabold text-stone-900 tracking-tight">{title}</h2>
         <p className="text-xs text-stone-500 font-medium">Velocity Luxury Intelligence & 3D Merchandising</p>

@@ -21,7 +21,7 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenCopilot }) => {
   const user = useSelector((state: RootState) => state.auth.user);
 
   return (
-    <aside className="w-60 shrink-0 h-screen sticky top-0 bg-gradient-to-b from-[#EA580C] via-[#D9530F] to-[#C2410C] flex flex-col justify-between shadow-2xl border-r border-[#9A3412]/40 text-white z-20">
+    <aside className="w-60 shrink-0 h-screen sticky top-0 bg-gradient-to-b from-[#EA580C] via-[#D9530F] to-[#C2410C] flex flex-col justify-between shadow-2xl border-r border-[#9A3412]/40 text-white z-30">
       <div>
         <div className="px-5 py-6 border-b border-orange-400/30">
           <div className="flex items-center gap-2.5">
