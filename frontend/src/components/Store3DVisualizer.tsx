@@ -156,71 +156,96 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const tshirts = catalogProducts.filter((p) => p.category === "T-Shirts");
   const shoes = catalogProducts.filter((p) => p.category === "Shoes");
 
-  // Dynamic AI Planogram Suggestions
+  // Dynamic AI Planogram Suggestions (Cross-Cupboard Complementary Pairings)
   const suggestions = React.useMemo(() => {
     const curatedDefaultPairs = [
       {
         id: "sug-1",
-        title: "Outerwear + Contrast Denim",
+        title: "Executive Outerwear + Contrast Denim Ensemble",
         dept: "Executive Outerwear",
         lift: "+84%",
         anchor: jackets.find((j) => j.color === "Beige" || j.name.includes("Cashmere")) || jackets[0],
         partner: jeans.find((j) => j.color === "Black" || j.name.includes("Tailored Slim")) || jeans[0],
-        similarProducts: jeans.slice(0, 4),
-        rationale: "High-contrast pairing of light neutral outerwear with black denim lifts basket size by 84%.",
+        similarProducts: [
+          jeans.find((j) => j.color === "Black") || jeans[0],
+          shirts.find((s) => s.color === "White") || shirts[0],
+          tshirts.find((t) => t.color === "Black") || tshirts[0],
+          shoes.find((s) => s.color === "Black") || shoes[0],
+        ].filter(Boolean),
+        rationale: "High-contrast full-outfit pairing (Outerwear + Denim + Oxford Shirt + Oxford Shoe) lifts basket size by 84%.",
       },
       {
         id: "sug-2",
-        title: "Streetwear Duo: Black Tee + White Shirt",
+        title: "Streetwear Duo: Organic Tee + Layered Overshirt",
         dept: "Denim & Streetwear",
         lift: "+76%",
         anchor: tshirts.find((t) => t.color === "Black" || t.name.includes("Mercerized")) || tshirts[0],
         partner: shirts.find((s) => s.color === "White" || s.name.includes("Oxford")) || shirts[0],
-        similarProducts: shirts.slice(0, 4),
-        rationale: "Customers buying basic black tees readily add open-collar white overshirts as layers.",
+        similarProducts: [
+          shirts.find((s) => s.color === "White") || shirts[0],
+          jeans.find((j) => j.color === "Blue" || j.color === "Navy") || jeans[1] || jeans[0],
+          jackets.find((j) => j.color === "Navy") || jackets[1] || jackets[0],
+          shoes.find((s) => s.color === "White") || shoes[1] || shoes[0],
+        ].filter(Boolean),
+        rationale: "Customers buying basic black tees readily add open-collar overshirts, denim, and sneakers.",
       },
       {
         id: "sug-3",
-        title: "Formal Suiting + Italian Leather Shoe",
+        title: "Formal Suiting + Handcrafted Italian Footwear",
         dept: "Executive Suits",
         lift: "+72%",
         anchor: jackets.find((j) => j.color === "Navy" || j.name.includes("Blazer")) || jackets[1] || jackets[0],
         partner: shoes.find((s) => s.color === "Black" || s.name.includes("Oxford")) || shoes[0],
-        similarProducts: shoes.slice(0, 4),
-        rationale: "Positioning handcrafted leather footwear near navy executive suits drives complete outfit conversion.",
+        similarProducts: [
+          shoes.find((s) => s.color === "Black") || shoes[0],
+          shirts.find((s) => s.color === "Light Blue" || s.color === "Blue") || shirts[1] || shirts[0],
+          jeans.find((j) => j.color === "Grey" || j.color === "Charcoal") || jeans[2] || jeans[0],
+          tshirts.find((t) => t.color === "White") || tshirts[1] || tshirts[0],
+        ].filter(Boolean),
+        rationale: "Positioning handcrafted leather footwear directly with navy suits drives complete formal outfit conversion.",
       },
       {
         id: "sug-4",
-        title: "Casual Studio: Earthy Tee + Chino",
+        title: "Contemporary Casual: Earthy Tee + Tailored Chino",
         dept: "Contemporary Casual",
         lift: "+68%",
         anchor: tshirts.find((t) => t.color === "Olive" || t.color === "Beige") || tshirts[1] || tshirts[0],
         partner: jeans.find((j) => j.color === "Beige" || j.color === "Olive") || jeans[1] || jeans[0],
-        similarProducts: jeans.slice(1, 5),
-        rationale: "Matching earth-tone organic studio tees with neutral chinos lifts impulse multi-item checkout by 68%.",
+        similarProducts: [
+          jeans.find((j) => j.color === "Beige" || j.color === "Olive") || jeans[1] || jeans[0],
+          shirts.find((s) => s.color === "Beige" || s.color === "Brown") || shirts[2] || shirts[0],
+          shoes.find((s) => s.color === "Brown" || s.color === "Tan") || shoes[2] || shoes[0],
+          jackets.find((j) => j.color === "Olive" || j.color === "Brown") || jackets[2] || jackets[0],
+        ].filter(Boolean),
+        rationale: "Matching earth-tone organic studio tees with neutral trousers and loafers lifts impulse multi-item checkout by 68%.",
       },
       {
         id: "sug-5",
-        title: "Evening Monochromatic: Overcoat + Boot",
+        title: "Evening Monochromatic: Overcoat + Chelsea Boot",
         dept: "Luxury Showcase",
         lift: "+64%",
         anchor: jackets.find((j) => j.color === "Black" || j.name.includes("Trench")) || jackets[2] || jackets[0],
         partner: shoes.find((s) => s.color === "Maroon" || s.name.includes("Chelsea")) || shoes[1] || shoes[0],
-        similarProducts: shoes.slice(1, 5),
-        rationale: "Co-locating sleek all-black luxury evening coats with Chelsea footwear creates a full evening package.",
+        similarProducts: [
+          shoes.find((s) => s.color === "Maroon" || s.name.includes("Chelsea")) || shoes[1] || shoes[0],
+          jeans.find((j) => j.color === "Black") || jeans[0],
+          shirts.find((s) => s.color === "Black") || shirts[3] || shirts[0],
+          tshirts.find((t) => t.color === "Charcoal") || tshirts[2] || tshirts[0],
+        ].filter(Boolean),
+        rationale: "Co-locating sleek all-black luxury evening coats with Chelsea boots and dark denim creates a full evening package.",
       },
     ];
 
     const dynamicPairs = (recommendations && recommendations.length > 0)
       ? recommendations.map((rec, idx) => ({
           id: `sug-${idx + 1}`,
-          title: `${rec.sourceProduct.name} + ${rec.similarProducts[0]?.name || "Partner"}`,
+          title: `${rec.sourceProduct.name} + ${rec.similarProducts[0]?.name || "Cross-Sell Partner"}`,
           dept: rec.sourceProduct.category,
           lift: idx === 0 ? "+84%" : idx === 1 ? "+76%" : idx === 2 ? "+72%" : idx === 3 ? "+68%" : "+64%",
           anchor: rec.sourceProduct,
           partner: rec.similarProducts[0] || jeans[idx % (jeans.length || 1)] || jackets[0],
           similarProducts: rec.similarProducts,
-          rationale: rec.reason || "Cross-sell attribute pairing recommended by velocity engine.",
+          rationale: rec.reason || "Cross-department attribute pairing recommended by velocity engine.",
         }))
       : [];
 
@@ -391,10 +416,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     let width = isFullScreen ? window.innerWidth : container.clientWidth;
     let height = isFullScreen ? window.innerHeight : container.clientHeight || 740;
 
-    // --- SCENE SETUP ---
+    // --- DAYLIGHT SCENE SETUP ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060814); // Deep luxury obsidian
-    scene.fog = new THREE.FogExp2(0x060814, 0.015);
+    scene.background = new THREE.Color(0xf1f5f9); // Crisp luxury boutique daylight
+    scene.fog = new THREE.FogExp2(0xf1f5f9, 0.009);
 
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 150);
     camera.position.set(0, 20, 26);
@@ -411,45 +436,45 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // Capped at 1.5x to eliminate lag
     renderer.shadowMap.enabled = false; // Disabled shadowMap to maintain 60 FPS
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.25;
 
     container.innerHTML = "";
     container.appendChild(renderer.domElement);
 
-    // --- STREAMLINED LIGHTING (Only 3 clean lights = zero GPU shader bottleneck) ---
-    const hemiLight = new THREE.HemisphereLight(0xfff7ed, 0x1e293b, 0.9);
+    // --- DAYLIGHT ARCHITECTURAL LIGHTING ---
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcfd8dc, 1.45);
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff7ed, 1.4);
-    dirLight.position.set(12, 22, 14);
+    const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.85);
+    dirLight.position.set(16, 26, 14);
     scene.add(dirLight);
 
-    const centerStageLight = new THREE.PointLight(0xffedd5, 1.2, 16);
+    const centerStageLight = new THREE.PointLight(0xfef3c7, 1.1, 18);
     centerStageLight.position.set(0, 7, 2);
     scene.add(centerStageLight);
 
-    // --- EXPANSIVE CARRARA MARBLE FLOOR ---
+    // --- EXPANSIVE WHITE CARRARA / TRAVERTINE MARBLE FLOOR ---
     const SHOWROOM_WIDTH = 36;
     const SHOWROOM_DEPTH = 30;
 
     // Lightweight marble grid
     const floorGeo = new THREE.PlaneGeometry(SHOWROOM_WIDTH, SHOWROOM_DEPTH);
     const floorMat = new THREE.MeshStandardMaterial({
-      color: 0x111625,
-      roughness: 0.25,
-      metalness: 0.2,
+      color: 0xf8fafc,
+      roughness: 0.22,
+      metalness: 0.08,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
     floorMesh.position.y = 0;
     scene.add(floorMesh);
 
-    const grid = new THREE.GridHelper(SHOWROOM_WIDTH, 36, 0x3b82f6, 0x1e293b);
+    const grid = new THREE.GridHelper(SHOWROOM_WIDTH, 36, 0xcfd8dc, 0xe2e8f0);
     grid.position.y = 0.01;
     scene.add(grid);
 
-    // Perimeter Glow Line
-    const perimeterMat = new THREE.MeshBasicMaterial({ color: 0x0284c7 });
+    // Perimeter Amber/Gold Accent Border
+    const perimeterMat = new THREE.MeshBasicMaterial({ color: 0xd97706 });
     const perimeterGeo = new THREE.RingGeometry(18.0, 18.08, 4);
     const perimeter = new THREE.Mesh(perimeterGeo, perimeterMat);
     perimeter.rotation.x = -Math.PI / 2;
@@ -457,8 +482,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     perimeter.position.y = 0.02;
     scene.add(perimeter);
 
-    // Gallery Walls
-    const wallMat = new THREE.MeshStandardMaterial({ color: 0x0a0f1d, roughness: 0.9 });
+    // Gallery Walls (Warm Museum Alabaster)
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.85 });
     const backWall = new THREE.Mesh(new THREE.BoxGeometry(SHOWROOM_WIDTH, 8.0, 0.4), wallMat);
     backWall.position.set(0, 4.0, -SHOWROOM_DEPTH / 2);
     scene.add(backWall);
@@ -472,20 +497,21 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     scene.add(rightWall);
 
     // Common Materials
-    const darkWalnutMat = new THREE.MeshStandardMaterial({ color: 0x121722, roughness: 0.5, metalness: 0.2 });
+    const darkWalnutMat = new THREE.MeshStandardMaterial({ color: 0x1f1610, roughness: 0.45, metalness: 0.15 });
     const glassShelfMat = new THREE.MeshStandardMaterial({
-      color: 0x38bdf8,
+      color: 0x7dd3fc,
       transparent: true,
-      opacity: 0.6,
-      roughness: 0.1,
-      metalness: 0.8,
+      opacity: 0.55,
+      roughness: 0.05,
+      metalness: 0.9,
     });
-    const goldBrassMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+    const goldBrassMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.92, roughness: 0.18 });
     const chromeMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.1 });
 
     // Interactive raycaster registry
     const interactiveObjects: THREE.Object3D[] = [];
     const productMeshMap = new Map<string, THREE.Mesh>();
+    const productGroupsMap = new Map<string, { group: THREE.Group; originalPos: THREE.Vector3; product: Product }>();
 
     // Helper: Overhead Department Signboard
     const createSignboard = (text: string, sub: string, accentHex: number) => {
@@ -707,9 +733,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const localY = shelfY[shelfIdx];
         const localZ = 0.1;
 
-        // Create product mesh inside cupboard
-        const pMesh = createProductMesh(prod, localX, localY, localZ);
-        group.add(pMesh);
+        const worldX = fixture.x + localX;
+        const worldY = localY;
+        const worldZ = fixture.z + localZ;
+
+        // Create product mesh in world space for smooth relocation
+        const pMesh = createProductMesh(prod, worldX, worldY, worldZ);
+        scene.add(pMesh);
+        productGroupsMap.set(prod._id, {
+          group: pMesh,
+          originalPos: new THREE.Vector3(worldX, worldY, worldZ),
+          product: prod,
+        });
       });
 
       scene.add(group);
@@ -790,8 +825,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       const localX = -5.0 + colIdx * 2.0;
       const localY = isUpper ? 1.8 : 0.9;
       const localZ = isUpper ? -1.0 : 1.0;
-      const sMesh = createProductMesh(shoe, localX, localY, localZ);
-      footwearGalleryGroup.add(sMesh);
+
+      const worldX = localX;
+      const worldY = localY;
+      const worldZ = -11.0 + localZ;
+
+      const sMesh = createProductMesh(shoe, worldX, worldY, worldZ);
+      scene.add(sMesh);
+      productGroupsMap.set(shoe._id, {
+        group: sMesh,
+        originalPos: new THREE.Vector3(worldX, worldY, worldZ),
+        product: shoe,
+      });
     });
 
     scene.add(footwearGalleryGroup);
@@ -916,17 +961,53 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       animatedGuidePulses.push({ mesh: pulseMesh, curve: neonCurve, offset: sIdx * 0.2 });
     });
 
-    // Target Placement Token when Planogram is applied
-    const planogramDisplayGroup = new THREE.Group();
-    planogramDisplayGroup.visible = planogramAppliedRef.current;
+    // Floating Relocated Beacon Group (Active when Planogram is applied)
+    const relocatedBeaconGroup = new THREE.Group();
+    relocatedBeaconGroup.visible = Boolean(planogramAppliedRef.current);
 
-    const swappedToken = new THREE.Mesh(
-      new THREE.BoxGeometry(0.5, 0.65, 0.35),
-      new THREE.MeshStandardMaterial({ color: 0xa855f7, roughness: 0.3, emissive: 0xa855f7, emissiveIntensity: 0.6 })
+    // Glowing rotating amber/gold ring at feet
+    const beaconRing = new THREE.Mesh(
+      new THREE.RingGeometry(0.55, 0.72, 32),
+      new THREE.MeshBasicMaterial({ color: 0xf59e0b, side: THREE.DoubleSide })
     );
-    swappedToken.position.set(targetSwappedPt.x, targetSwappedPt.y + 0.35, targetSwappedPt.z);
-    planogramDisplayGroup.add(swappedToken);
-    scene.add(planogramDisplayGroup);
+    beaconRing.rotation.x = -Math.PI / 2;
+    beaconRing.position.y = 0.03;
+    relocatedBeaconGroup.add(beaconRing);
+
+    // 3D Canvas Billboard: "★ PLANOGRAM RELOCATED"
+    const beaconCanvas = document.createElement("canvas");
+    beaconCanvas.width = 384;
+    beaconCanvas.height = 96;
+    const bCtx = beaconCanvas.getContext("2d")!;
+    bCtx.fillStyle = "rgba(245, 158, 11, 0.95)";
+    bCtx.fillRect(0, 0, 384, 96);
+    bCtx.strokeStyle = "#ffffff";
+    bCtx.lineWidth = 4;
+    bCtx.strokeRect(3, 3, 378, 90);
+    bCtx.fillStyle = "#1c1917";
+    bCtx.font = "bold 26px sans-serif";
+    bCtx.textAlign = "center";
+    bCtx.fillText("★ PLANOGRAM RELOCATED", 192, 58);
+    const beaconTex = new THREE.CanvasTexture(beaconCanvas);
+    const beaconSign = new THREE.Mesh(
+      new THREE.PlaneGeometry(1.4, 0.35),
+      new THREE.MeshBasicMaterial({ map: beaconTex, transparent: true })
+    );
+    beaconSign.position.y = 1.05;
+    relocatedBeaconGroup.add(beaconSign);
+
+    relocatedBeaconGroup.position.set(targetSwappedPt.x, targetSwappedPt.y, targetSwappedPt.z);
+    scene.add(relocatedBeaconGroup);
+
+    triggerFlightAnimationRef.current = () => {
+      if (pairedProduct) {
+        const pItem = productGroupsMap.get(pairedProduct._id);
+        if (pItem) {
+          // Immediately pop upward along a dramatic flight arc
+          pItem.group.position.y += 2.2;
+        }
+      }
+    };
 
     // =========================================================================
     // 🕹️ INTERACTION: MOUSE ORBIT, PAN, ZOOM, AND HOVER OVER 60 PRODUCTS
@@ -1118,7 +1199,23 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         p.mesh.position.copy(p.curve.getPoint(progress));
       });
 
-      planogramDisplayGroup.visible = planogramAppliedRef.current;
+      // 🌟 DYNAMIC PRODUCT RELOCATION (APPLY PLANOGRAM)
+      if (pairedProduct) {
+        const pItem = productGroupsMap.get(pairedProduct._id);
+        if (pItem) {
+          if (planogramAppliedRef.current) {
+            // Relocate partner product mesh directly onto targetSwappedPt!
+            pItem.group.position.lerp(targetSwappedPt, 0.08);
+            relocatedBeaconGroup.position.set(targetSwappedPt.x, targetSwappedPt.y, targetSwappedPt.z);
+            relocatedBeaconGroup.visible = true;
+            beaconRing.rotation.z += 0.04;
+          } else {
+            // Glide smoothly back to native shelf
+            pItem.group.position.lerp(pItem.originalPos, 0.08);
+            relocatedBeaconGroup.visible = false;
+          }
+        }
+      }
 
       renderer.render(scene, camera);
     };
@@ -1172,7 +1269,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
   // Fallback product display if none hovered yet
   const activeDisplayProduct = inspectedProduct || hoveredProduct || fastMoverProduct;
-  const activeProductCoords = getProductShelfLocation(activeDisplayProduct);
+  const activeProductCoords = React.useMemo(() => {
+    if (planogramApplied && pairedProduct && activeDisplayProduct?._id === pairedProduct._id) {
+      if (swapMode === "cupboard") {
+        return {
+          x: adjacentCupboardLoc.x,
+          y: adjacentCupboardLoc.y,
+          z: adjacentCupboardLoc.z,
+          zone: `${anchorShelfLoc.zone} (Planogram Relocated)`,
+          shelf: anchorShelfLoc.shelf,
+          slot: (anchorShelfLoc.slot || 1) + 1,
+          isRelocated: true,
+        };
+      } else {
+        return {
+          x: targetSpot.swappedCoords.x,
+          y: 2.2,
+          z: targetSpot.swappedCoords.z,
+          zone: `Hero Runway Stage: ${targetSpot.badge} (Promoted)`,
+          shelf: "Promenade Podium",
+          slot: 1,
+          isRelocated: true,
+        };
+      }
+    }
+    return getProductShelfLocation(activeDisplayProduct);
+  }, [planogramApplied, pairedProduct, activeDisplayProduct, swapMode, adjacentCupboardLoc, anchorShelfLoc, targetSpot]);
+
   const activeProductImg = activeDisplayProduct
     ? getProductImage(activeDisplayProduct.category, activeDisplayProduct.color, activeDisplayProduct.name, activeDisplayProduct.imageUrl)
     : "";
@@ -1180,7 +1303,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   return (
     <div
       ref={visualizerRootRef}
-      className={`relative w-full rounded-3xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl transition-all duration-300 ${
+      className={`relative w-full rounded-3xl overflow-hidden bg-slate-100 border border-[#E5D7BE] shadow-2xl transition-all duration-300 ${
         isFullScreen ? "fixed inset-0 z-50 rounded-none border-none" : "h-[740px]"
       }`}
     >
