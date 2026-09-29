@@ -190,7 +190,8 @@ export const buildPlanogramCoordPayload = (
   suggestedProducts: Product[] = [],
   lift = "+82%",
   pairIndex = 0,
-  swapMode: SwapMode = "cupboard"
+  swapMode: SwapMode = "cupboard",
+  mutualSwapList: any[] = []
 ) => {
   let idx = pairIndex;
   const match = pairId.match(/(\d+)/);
@@ -235,5 +236,6 @@ export const buildPlanogramCoordPayload = (
     originalPairedCoordinates: origCoords,
     swappedPairedCoordinates,
     suggestedCoordinatesList: suggestedList,
+    mutualSwapList,
   };
 };

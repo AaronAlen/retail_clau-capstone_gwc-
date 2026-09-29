@@ -36,7 +36,7 @@ exports.getPlanogramState = (0, express_async_handler_1.default)(async (req, res
     res.json(planogram);
 });
 exports.applyPlanogram = (0, express_async_handler_1.default)(async (req, res) => {
-    const { activePairId, swapMode, spotId, spotName, sourceProductId, pairedProductId, lift, sourceCoordinates, originalPairedCoordinates, swappedPairedCoordinates, suggestedCoordinatesList, } = req.body;
+    const { activePairId, swapMode, spotId, spotName, sourceProductId, pairedProductId, lift, sourceCoordinates, originalPairedCoordinates, swappedPairedCoordinates, suggestedCoordinatesList, mutualSwapList, } = req.body;
     let planogram = await Planogram_1.default.findOne().sort({ updatedAt: -1 });
     if (!planogram) {
         planogram = new Planogram_1.default();
@@ -61,29 +61,60 @@ exports.applyPlanogram = (0, express_async_handler_1.default)(async (req, res) =
     if (suggestedCoordinatesList)
         planogram.suggestedCoordinatesList = suggestedCoordinatesList;
     await planogram.save();
-    // Persist updated 3D coordinates in Product collection in MongoDB
-    if (pairedProductId && swappedPairedCoordinates) {
-        await Product_1.default.findByIdAndUpdate(pairedProductId, {
-            coordinates3D: {
-                x: swappedPairedCoordinates.x,
-                y: swappedPairedCoordinates.y,
-                z: swappedPairedCoordinates.z,
-                zone: swappedPairedCoordinates.zone || "Hero Runway A-1 (Swapped)",
-                isRelocated: true,
-            },
-        });
+
+    // Persist mutual swap coordinates in MongoDB for all participating products
+    if (mutualSwapList && Array.isArray(mutualSwapList) && mutualSwapList.length > 0) {
+        for (const pair of mutualSwapList) {
+            if (pair.suggestedId && pair.targetCoordsForSuggested) {
+                await Product_1.default.findByIdAndUpdate(pair.suggestedId, {
+                    coordinates3D: {
+                        x: pair.targetCoordsForSuggested.x,
+                        y: pair.targetCoordsForSuggested.y,
+                        z: pair.targetCoordsForSuggested.z,
+                        zone: pair.targetCoordsForSuggested.zone || "Swapped Adjacent to Fast Mover",
+                        isRelocated: true,
+                    },
+                });
+            }
+            if (pair.neighborId && pair.targetCoordsForNeighbor) {
+                await Product_1.default.findByIdAndUpdate(pair.neighborId, {
+                    coordinates3D: {
+                        x: pair.targetCoordsForNeighbor.x,
+                        y: pair.targetCoordsForNeighbor.y,
+                        z: pair.targetCoordsForNeighbor.z,
+                        zone: pair.targetCoordsForNeighbor.zone || "Relocated Vacancy Slot",
+                        isRelocated: true,
+                    },
+                });
+            }
+        }
+    } else {
+        // Fallback for single paired product
+        if (pairedProductId && swappedPairedCoordinates) {
+            await Product_1.default.findByIdAndUpdate(pairedProductId, {
+                coordinates3D: {
+                    x: swappedPairedCoordinates.x,
+                    y: swappedPairedCoordinates.y,
+                    z: swappedPairedCoordinates.z,
+                    zone: swappedPairedCoordinates.zone || "Hero Runway A-1 (Swapped)",
+                    isRelocated: true,
+                },
+            });
+        }
     }
+
     if (sourceProductId && sourceCoordinates) {
         await Product_1.default.findByIdAndUpdate(sourceProductId, {
             coordinates3D: {
                 x: sourceCoordinates.x,
                 y: sourceCoordinates.y,
                 z: sourceCoordinates.z,
-                zone: sourceCoordinates.zone || "Hero Runway A-1 (Anchor)",
+                zone: sourceCoordinates.zone || "Fast Mover Anchor",
                 isRelocated: false,
             },
         });
     }
+
     try {
         (0, sockets_1.getIO)().emit("planogram_updated", planogram);
     }
@@ -95,7 +126,11 @@ exports.resetPlanogram = (0, express_async_handler_1.default)(async (req, res) =
     if (planogram) {
         planogram.applied = false;
         await planogram.save();
-        // Revert product coordinates in MongoDB
+        // Revert all relocated products back to original status in MongoDB
+        await Product_1.default.updateMany(
+            { "coordinates3D.isRelocated": true },
+            { $set: { "coordinates3D.isRelocated": false } }
+        );
         if (planogram.pairedProductId && planogram.originalPairedCoordinates) {
             await Product_1.default.findByIdAndUpdate(planogram.pairedProductId, {
                 coordinates3D: {
