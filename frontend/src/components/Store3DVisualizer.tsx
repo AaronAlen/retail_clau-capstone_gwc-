@@ -77,6 +77,28 @@ interface CupboardFixture {
   products: Product[];
 }
 
+// Isolated Digital Clock to prevent parent component re-renders
+const ShowroomClock = React.memo(() => {
+  const [time, setTime] = useState("");
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      setTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!time) return null;
+  return (
+    <div className="glass-panel px-3 py-1.5 rounded-xl hidden sm:flex items-center gap-1.5 text-xs text-amber-300 border border-amber-500/30">
+      <Clock className="w-3.5 h-3.5 text-amber-400" />
+      <span className="font-mono text-[11px] font-bold">{time}</span>
+    </div>
+  );
+});
+
 export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   fastMovers,
   recommendations,
@@ -100,7 +122,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isHeatmapMode, setIsHeatmapMode] = useState(false);
-  const [currentTime, setCurrentTime] = useState("");
   const [isOverlayVisible, setIsOverlayVisible] = useState(true);
   const hasUserSelectedRef = useRef(false);
 
@@ -110,6 +131,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   // Hovered / Inspected Product State for Rich Side Overlay
   const [hoveredProduct, setHoveredProduct] = useState<Product | null>(null);
   const [inspectedProduct, setInspectedProduct] = useState<Product | null>(null);
+  const hoveredProductIdRef = useRef<string | null>(null);
   const isMouseOverUIRef = useRef(false);
 
   const { showToast } = useToast();
@@ -124,6 +146,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const [isSwapAnimating, setIsSwapAnimating] = useState(false);
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const triggerFlightAnimationRef = useRef<((forward?: boolean) => void) | null>(null);
+  const snapToAppliedPositionsRef = useRef<(() => void) | null>(null);
 
   // Search Bar & 3D Scope Pointer States
   const [searchQuery, setSearchQuery] = useState("");
@@ -172,12 +195,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     }
   }, [dispatch, catalogProducts.length]);
 
-  // Group products by 5 categories (12 items each = 60 products total)
-  const jackets = catalogProducts.filter((p) => p.category === "Jackets");
-  const jeans = catalogProducts.filter((p) => p.category === "Jeans");
-  const shirts = catalogProducts.filter((p) => p.category === "Shirts");
-  const tshirts = catalogProducts.filter((p) => p.category === "T-Shirts");
-  const shoes = catalogProducts.filter((p) => p.category === "Shoes");
+  // Group products by 5 categories (12 items each = 60 products total) - memoized to prevent cascading re-renders
+  const jackets = React.useMemo(() => catalogProducts.filter((p) => p.category === "Jackets"), [catalogProducts]);
+  const jeans = React.useMemo(() => catalogProducts.filter((p) => p.category === "Jeans"), [catalogProducts]);
+  const shirts = React.useMemo(() => catalogProducts.filter((p) => p.category === "Shirts"), [catalogProducts]);
+  const tshirts = React.useMemo(() => catalogProducts.filter((p) => p.category === "T-Shirts"), [catalogProducts]);
+  const shoes = React.useMemo(() => catalogProducts.filter((p) => p.category === "Shoes"), [catalogProducts]);
 
   // Dynamic AI Planogram Suggestions (Cross-Cupboard Complementary Pairings)
   const suggestions = React.useMemo(() => {
@@ -398,11 +421,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       try {
         const { data } = await api.get("/recommendations/planogram");
         if (data) {
-          setPlanogramApplied(Boolean(data.applied));
+          const isApplied = Boolean(data.applied);
+          setPlanogramApplied(isApplied);
+          planogramAppliedRef.current = isApplied;
           if (data.swapMode) setSwapMode(data.swapMode);
           if (!hasUserSelectedRef.current && data.activePairId) {
             const idx = suggestions.findIndex((s) => s.id === data.activePairId);
             if (idx !== -1) setSelectedSuggestionIdx(idx);
+          }
+          if (isApplied) {
+            snapToAppliedPositionsRef.current?.();
           }
         }
       } catch {}
@@ -416,10 +444,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       const data = payload as any;
       if (data) {
         if (data.swapMode) setSwapMode(data.swapMode);
-        if (data.applied && !planogramApplied) {
-          triggerFlightAnimationRef.current?.(true);
+        const incomingApplied = Boolean(data.applied);
+        if (incomingApplied !== planogramAppliedRef.current) {
+          planogramAppliedRef.current = incomingApplied;
+          setPlanogramApplied(incomingApplied);
+          triggerFlightAnimationRef.current?.(incomingApplied);
         }
-        setPlanogramApplied(Boolean(data.applied));
         if (data.applied && data.activePairId) {
           const idx = suggestions.findIndex((s) => s.id === data.activePairId);
           if (idx !== -1) setSelectedSuggestionIdx(idx);
@@ -430,17 +460,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       dispatch(fetchProducts());
     }
   });
-
-  // Digital clock
-  useEffect(() => {
-    const updateTime = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }));
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, []);
 
   const toggleFullScreen = async () => {
     if (!visualizerRootRef.current) return;
@@ -509,9 +528,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         swapMode,
         mutualSwapList
       );
-      await api.post("/recommendations/apply-planogram", payload);
-      triggerFlightAnimationRef.current?.(true);
+      planogramAppliedRef.current = true;
       setPlanogramApplied(true);
+      triggerFlightAnimationRef.current?.(true);
+      await api.post("/recommendations/apply-planogram", payload);
       showToast(
         swapMode === "cupboard"
           ? `Planogram Active: ${swapPairs.length} product pairs mutually swapped cleanly across cupboards!`
@@ -530,9 +550,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const handleResetPlanogram = async () => {
     setActionLoading(true);
     try {
+      planogramAppliedRef.current = false;
+      setPlanogramApplied(false);
       triggerFlightAnimationRef.current?.(false);
       await api.post("/recommendations/reset-planogram");
-      setPlanogramApplied(false);
       showToast("Showroom layout restored to baseline native shelves.", "info");
       dispatch(fetchProducts());
     } catch {
@@ -1215,6 +1236,32 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       swapBeaconGroups.push(bGroup);
     });
 
+    // If planogram was already applied before this scene mount, immediately set swapped positions (without triggering a flight animation)
+    if (planogramAppliedRef.current) {
+      swapPairs.forEach((pair) => {
+        const itemS = productGroupsMap.get(pair.suggested._id);
+        const itemN = productGroupsMap.get(pair.neighbor._id);
+        if (itemS && itemN) {
+          itemS.group.position.copy(itemN.originalPos);
+          itemN.group.position.copy(itemS.originalPos);
+        }
+      });
+    }
+
+    snapToAppliedPositionsRef.current = () => {
+      swapPairs.forEach((pair) => {
+        const itemS = productGroupsMap.get(pair.suggested._id);
+        const itemN = productGroupsMap.get(pair.neighbor._id);
+        if (itemS && itemN) {
+          itemS.group.position.copy(itemN.originalPos);
+          itemN.group.position.copy(itemS.originalPos);
+        }
+      });
+      swapBeaconGroups.forEach((bg) => {
+        bg.visible = true;
+      });
+    };
+
     // 🚀 Flight Animation Controller for Dramatic 3D Swap
     const flightAnim = {
       active: false,
@@ -1228,6 +1275,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       flightAnim.startTime = performance.now();
       flightAnim.duration = 2000;
       flightAnim.forward = forward;
+      setIsSwapAnimating(true);
+      setTimeout(() => setIsSwapAnimating(false), 2050);
     };
 
     // =========================================================================
@@ -1324,9 +1373,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               lastHoveredMesh = pMesh;
             }
 
-            // Update React state for Side Overlay!
-            setHoveredProduct(prod);
-            setInspectedProduct(prod);
+            // Update React state for Side Overlay only when hovered product actually changes!
+            if (hoveredProductIdRef.current !== prod._id) {
+              hoveredProductIdRef.current = prod._id;
+              setHoveredProduct(prod);
+              setInspectedProduct(prod);
+            }
             return;
           }
         } else {
@@ -1334,6 +1386,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             lastHoveredMesh.scale.set(1, 1, 1);
             lastHoveredMesh = null;
           }
+          hoveredProductIdRef.current = null;
           renderer.domElement.style.cursor = "grab";
         }
       }
@@ -1476,25 +1529,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           swapPairs.forEach((pair) => {
             const itemS = productGroupsMap.get(pair.suggested._id);
             const itemN = productGroupsMap.get(pair.neighbor._id);
-            if (itemS) itemS.group.rotation.y = 0;
-            if (itemN) itemN.group.rotation.y = 0;
+            if (itemS && itemN) {
+              itemS.group.rotation.y = 0;
+              itemS.group.position.copy(flightAnim.forward ? itemN.originalPos : itemS.originalPos);
+              itemN.group.rotation.y = 0;
+              itemN.group.position.copy(flightAnim.forward ? itemS.originalPos : itemN.originalPos);
+            }
           });
         }
-      } else {
-        // Resting Lerp Position
-        swapPairs.forEach((pair) => {
-          const itemS = productGroupsMap.get(pair.suggested._id);
-          const itemN = productGroupsMap.get(pair.neighbor._id);
-          if (!itemS || !itemN) return;
-
-          if (planogramAppliedRef.current) {
-            itemS.group.position.lerp(itemN.originalPos, 0.1);
-            itemN.group.position.lerp(itemS.originalPos, 0.1);
-          } else {
-            itemS.group.position.lerp(itemS.originalPos, 0.1);
-            itemN.group.position.lerp(itemN.originalPos, 0.1);
-          }
-        });
       }
 
       renderer.render(scene, camera);
@@ -1544,8 +1586,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     selectedSuggestionIdx,
     catalogProducts.length,
     swapMode,
-    allSuggestingPartners.length,
-    swapPairs,
   ]);
 
   // Fallback product display if none hovered yet
@@ -1717,12 +1757,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           }}
           className="flex items-center gap-2 pointer-events-auto shrink-0"
         >
-          {currentTime && (
-            <div className="glass-panel px-3 py-1.5 rounded-xl hidden sm:flex items-center gap-1.5 text-xs text-amber-300 border border-amber-500/30">
-              <Clock className="w-3.5 h-3.5 text-amber-400" />
-              <span className="font-mono text-[11px] font-bold">{currentTime}</span>
-            </div>
-          )}
+          <ShowroomClock />
 
           {/* Toggle Sidebar Overlay Button */}
           <button
