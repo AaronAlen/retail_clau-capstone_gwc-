@@ -5,6 +5,7 @@ import User from "../models/User";
 import Product from "../models/Product";
 import Sale from "../models/Sale";
 import Planogram from "../models/Planogram";
+import { computeProductCoordinates } from "./updateCoordinates";
 
 // 5 core apparel & footwear departments
 const categoryData = {
@@ -100,10 +101,12 @@ const run = async () => {
   let skuCounter = 1001;
 
   for (const [category, items] of Object.entries(categoryData)) {
+    let indexInCat = 0;
     for (const item of items) {
       const sku = `SKU-${skuCounter++}`;
       // Set varying inventory buffer: some with high stock, a couple with low stock for alerts
       const stock = skuCounter % 15 === 0 ? 3 : 18 + (skuCounter % 7) * 6;
+      const coords = computeProductCoordinates(category, indexInCat++);
       products.push({
         name: `${item.name} #${skuCounter - 1001}`,
         sku,
@@ -115,6 +118,7 @@ const run = async () => {
         imageUrl: process.env.CLOUDINARY_CLOUD_NAME
           ? `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload/velocity_retail/products/product-${skuCounter - 1001}.jpg`
           : `/products/product-${skuCounter - 1001}.jpg`,
+        coordinates3D: coords,
       });
     }
   }

@@ -14,6 +14,8 @@ export interface IProduct extends Document {
     y: number;
     z: number;
     zone?: string;
+    shelf?: string;
+    slot?: number;
     isRelocated?: boolean;
   };
   createdAt: Date;
@@ -34,6 +36,8 @@ const productSchema = new Schema<IProduct>(
       y: { type: Number },
       z: { type: Number },
       zone: { type: String },
+      shelf: { type: String },
+      slot: { type: Number },
       isRelocated: { type: Boolean, default: false },
     },
   },

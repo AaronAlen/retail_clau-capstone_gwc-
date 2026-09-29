@@ -5,6 +5,8 @@ export interface Coordinate3D {
   y: number;
   z: number;
   zone: string;
+  shelf?: string;
+  slot?: number;
 }
 
 export interface PopularSpot {
@@ -20,7 +22,7 @@ export interface PopularSpot {
   neonColorHex: string;
 }
 
-// 🌟 3 SPACIOUS & PROMINENT HERO DISPLAY STATIONS (Far apart with high visibility)
+// 🌟 3 SPACIOUS & PROMINENT HERO DISPLAY STATIONS (Center Runway & Promenades)
 export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
   {
     id: "spot-1",
@@ -28,33 +30,33 @@ export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
     name: "Hero Station 1: Prime Center Runway",
     code: "HERO 1",
     badge: "🌟 #1 CENTER RUNWAY",
-    anchorCoords: { x: -0.85, y: 1.8, z: 2.8, zone: "Hero Station 1: Center Runway (Anchor)" },
-    swappedCoords: { x: 0.85, y: 1.8, z: 2.8, zone: "Hero Station 1: Center Runway (Pair)" },
-    podiumCoords: { x: 0.0, y: 0.0, z: 2.8 },
+    anchorCoords: { x: -1.2, y: 1.6, z: 1.8, zone: "Hero Runway Station 1 (Anchor Podium)" },
+    swappedCoords: { x: 1.2, y: 1.6, z: 1.8, zone: "Hero Runway Station 1 (Co-Purchase Podium)" },
+    podiumCoords: { x: 0.0, y: 0.0, z: 1.8 },
     color: 0xf59e0b, // Amber Gold
     neonColorHex: "#f59e0b",
   },
   {
     id: "spot-2",
     index: 1,
-    name: "Hero Station 2: West Grand Promenade",
+    name: "Hero Station 2: West Promenade",
     code: "HERO 2",
     badge: "✨ #2 WEST PROMENADE",
-    anchorCoords: { x: -10.3, y: 1.8, z: 5.2, zone: "Hero Station 2: West Promenade (Anchor)" },
-    swappedCoords: { x: -8.7, y: 1.8, z: 5.2, zone: "Hero Station 2: West Promenade (Pair)" },
-    podiumCoords: { x: -9.5, y: 0.0, z: 5.2 },
+    anchorCoords: { x: -8.0, y: 1.6, z: 1.8, zone: "Hero Station 2: West Promenade (Anchor)" },
+    swappedCoords: { x: -5.6, y: 1.6, z: 1.8, zone: "Hero Station 2: West Promenade (Pair)" },
+    podiumCoords: { x: -6.8, y: 0.0, z: 1.8 },
     color: 0x38bdf8, // Sky Blue
     neonColorHex: "#38bdf8",
   },
   {
     id: "spot-3",
     index: 2,
-    name: "Hero Station 3: East Grand Promenade",
+    name: "Hero Station 3: East Promenade",
     code: "HERO 3",
     badge: "⚡ #3 EAST PROMENADE",
-    anchorCoords: { x: 8.7, y: 1.8, z: 5.2, zone: "Hero Station 3: East Promenade (Anchor)" },
-    swappedCoords: { x: 10.3, y: 1.8, z: 5.2, zone: "Hero Station 3: East Promenade (Pair)" },
-    podiumCoords: { x: 9.5, y: 0.0, z: 5.2 },
+    anchorCoords: { x: 5.6, y: 1.6, z: 1.8, zone: "Hero Station 3: East Promenade (Anchor)" },
+    swappedCoords: { x: 8.0, y: 1.6, z: 1.8, zone: "Hero Station 3: East Promenade (Pair)" },
+    podiumCoords: { x: 6.8, y: 0.0, z: 1.8 },
     color: 0xa855f7, // Royal Purple
     neonColorHex: "#a855f7",
   },
@@ -68,79 +70,115 @@ export const getPopularSpotByIndex = (index: number): PopularSpot => {
 export const HERO_RUNWAY_ANCHOR: Coordinate3D = POPULAR_FEATURE_SPOTS[0].anchorCoords;
 export const HERO_RUNWAY_SWAPPED: Coordinate3D = POPULAR_FEATURE_SPOTS[0].swappedCoords;
 
-// 🏬 Cupboard Adjacency: Places the suggested cross-sell product directly next to the fast seller's cupboard/shelf
-export const getCupboardAdjacentCoords = (anchorProduct: Product | undefined): Coordinate3D => {
-  const base = getProductShelfLocation(anchorProduct);
-  // Place on adjacent shelf bay in the same fixture/aisle
-  const xOffset = base.x > 0 ? -1.8 : 1.8;
+// Fallback deterministic coordinate computation if product does not yet have DB coordinates
+export const computeFallbackShelfLocation = (product: Product): Coordinate3D => {
+  const cat = (product.category || "").toLowerCase();
+  // Extract number from SKU (e.g. SKU-1001 -> 0, SKU-1013 -> 0)
+  const skuNum = parseInt((product.sku || "").replace(/\D/g, ""), 10);
+  const indexInCat = !isNaN(skuNum) ? (skuNum - 1) % 12 : 0;
+
+  // 1. Jackets (West Wing, x center: -12.5, z: -3.8)
+  if (cat.includes("jacket")) {
+    const shelfIndex = Math.floor(indexInCat / 4);
+    const colIndex = indexInCat % 4;
+    return {
+      x: Number((-14.0 + colIndex * 1.0).toFixed(2)),
+      y: shelfIndex === 0 ? 3.4 : shelfIndex === 1 ? 2.2 : 1.0,
+      z: -3.8,
+      zone: "West Wing: Executive Outerwear Cupboard",
+      shelf: shelfIndex === 0 ? "Top Shelf" : shelfIndex === 1 ? "Middle Shelf" : "Lower Shelf",
+      slot: indexInCat + 1,
+    };
+  }
+
+  // 2. Shirts (North-West Wing, x center: -12.5, z: 6.2)
+  if (cat.includes("shirt") && !cat.includes("t-shirt") && !cat.includes("tee")) {
+    const shelfIndex = Math.floor(indexInCat / 4);
+    const colIndex = indexInCat % 4;
+    return {
+      x: Number((-14.0 + colIndex * 1.0).toFixed(2)),
+      y: shelfIndex === 0 ? 3.4 : shelfIndex === 1 ? 2.2 : 1.0,
+      z: 6.2,
+      zone: "North-West: Formal Shirts Wardrobe",
+      shelf: shelfIndex === 0 ? "Top Shelf" : shelfIndex === 1 ? "Middle Shelf" : "Lower Shelf",
+      slot: indexInCat + 1,
+    };
+  }
+
+  // 3. Jeans (East Wing, x center: 12.5, z: -3.8)
+  if (cat.includes("jean") || cat.includes("denim") || cat.includes("trouser")) {
+    const shelfIndex = Math.floor(indexInCat / 4);
+    const colIndex = indexInCat % 4;
+    return {
+      x: Number((11.0 + colIndex * 1.0).toFixed(2)),
+      y: shelfIndex === 0 ? 3.4 : shelfIndex === 1 ? 2.2 : 1.0,
+      z: -3.8,
+      zone: "East Wing: Premium Denim Cupboard",
+      shelf: shelfIndex === 0 ? "Top Shelf" : shelfIndex === 1 ? "Middle Shelf" : "Lower Shelf",
+      slot: indexInCat + 1,
+    };
+  }
+
+  // 4. T-Shirts (North-East Wing, x center: 12.5, z: 6.2)
+  if (cat.includes("t-shirt") || cat.includes("tee")) {
+    const shelfIndex = Math.floor(indexInCat / 4);
+    const colIndex = indexInCat % 4;
+    return {
+      x: Number((11.0 + colIndex * 1.0).toFixed(2)),
+      y: shelfIndex === 0 ? 3.4 : shelfIndex === 1 ? 2.2 : 1.0,
+      z: 6.2,
+      zone: "North-East: Streetwear Tees Cupboard",
+      shelf: shelfIndex === 0 ? "Top Shelf" : shelfIndex === 1 ? "Middle Shelf" : "Lower Shelf",
+      slot: indexInCat + 1,
+    };
+  }
+
+  // 5. Shoes (Center North Gallery)
+  const isUpper = indexInCat < 6;
+  const colIndex = isUpper ? indexInCat : indexInCat - 6;
   return {
-    x: Number((base.x + xOffset).toFixed(2)),
-    y: base.y,
-    z: base.z,
-    zone: `${base.zone} (Adjacent Shelf Bay)`,
+    x: Number((-5.0 + colIndex * 2.0).toFixed(2)),
+    y: isUpper ? 1.8 : 0.9,
+    z: isUpper ? -12.0 : -10.0,
+    zone: "Center Arcade: Footwear Vitrine Gallery",
+    shelf: isUpper ? "Upper Vitrine Tier" : "Lower Vitrine Tier",
+    slot: indexInCat + 1,
   };
 };
 
 export const getProductShelfLocation = (product: Product | undefined): Coordinate3D => {
   if (!product) {
-    return { x: 6.5, y: 2.2, z: -5.5, zone: "Streetwear Chinos Bay" };
+    return { x: 12.0, y: 2.2, z: -3.8, zone: "East Wing: Premium Denim Cupboard", shelf: "Middle Shelf", slot: 1 };
   }
 
-  const cat = (product.category || "").toLowerCase();
-  const name = (product.name || "").toLowerCase();
-
-  // 1. Jeans & Chinos (Zone 2)
-  if (cat.includes("jean") || cat.includes("denim") || cat.includes("trouser") || cat.includes("pant")) {
-    if (name.includes("selvedge") || name.includes("raw") || name.includes("heavyweight")) {
-      return { x: 12.5, y: 2.2, z: -13.5, zone: "Premium Denim Wall" };
-    }
-    if (name.includes("chino") || name.includes("ecru") || name.includes("sandstone")) {
-      return { x: 6.5, y: 2.2, z: -5.5, zone: "Streetwear Chinos Bay" };
-    }
-    if (name.includes("distressed") || name.includes("stretch") || name.includes("acid")) {
-      return { x: 6.5, y: 2.2, z: 0.5, zone: "Center Aisle: Raw & Distressed Denim" };
-    }
-    return { x: 17.2, y: 2.2, z: -6.5, zone: "Urban Chinos & Denim Bay" };
+  // Check if real 3D coordinates are loaded from MongoDB
+  if (product.coordinates3D && typeof product.coordinates3D.x === "number" && typeof product.coordinates3D.y === "number") {
+    return {
+      x: product.coordinates3D.x,
+      y: product.coordinates3D.y,
+      z: product.coordinates3D.z,
+      zone: product.coordinates3D.zone || "Showroom Department",
+      shelf: product.coordinates3D.shelf || "Display Shelf",
+      slot: product.coordinates3D.slot || 1,
+    };
   }
 
-  // 2. T-Shirts & Graphic Streetwear (Zone 2)
-  if (cat.includes("t-shirt") || cat.includes("tee")) {
-    if (name.includes("graphic") || name.includes("print") || name.includes("acid")) {
-      return { x: 17.2, y: 2.2, z: 4.5, zone: "Streetwear Graphic Tees Wall" };
-    }
-    if (name.includes("studio") || name.includes("heavyweight") || name.includes("supima")) {
-      return { x: 6.5, y: 2.2, z: 6.0, zone: "Heavyweight Studio Tees Bay" };
-    }
-    return { x: 12.5, y: 2.2, z: -5.5, zone: "East Arcade: Urban Street Tees" };
-  }
+  return computeFallbackShelfLocation(product);
+};
 
-  // 3. Collared & Dress Shirts (Zone 3)
-  if (cat.includes("shirt")) {
-    if (name.includes("oxford") || name.includes("royal") || name.includes("dress")) {
-      return { x: -6.5, y: 2.2, z: 0.5, zone: "Royal Oxford Shirts Bay" };
-    }
-    if (name.includes("sateen") || name.includes("linen") || name.includes("twill")) {
-      return { x: 2.5, y: 2.2, z: -3.0, zone: "Runway Sateen Shirts Bay" };
-    }
-    return { x: -6.5, y: 2.2, z: -6.0, zone: "Center Aisle Formal Shirts" };
-  }
-
-  // 4. Footwear & Shoes (Zone 4)
-  if (cat.includes("shoe") || cat.includes("boot") || cat.includes("loafer") || cat.includes("sneaker") || cat.includes("footwear")) {
-    if (name.includes("oxford") || name.includes("monk") || name.includes("boot") || name.includes("chelsea")) {
-      return { x: 7.5, y: 1.8, z: 7.0, zone: "Luxury Footwear Vitrine East" };
-    }
-    return { x: -7.5, y: 1.8, z: 7.0, zone: "Luxury Footwear Vitrine West" };
-  }
-
-  // 5. Outerwear & Jackets (Zone 1)
-  if (name.includes("blazer") || name.includes("tuxedo")) {
-    return { x: -12.5, y: 2.2, z: -13.5, zone: "Savile Row Blazers Bay" };
-  }
-  if (name.includes("overcoat") || name.includes("cashmere")) {
-    return { x: -17.2, y: 2.2, z: -6.5, zone: "Cashmere Overcoats Bay" };
-  }
-  return { x: -17.2, y: 2.2, z: 4.5, zone: "Trench & Evening Coats Wall" };
+// 🏬 Cupboard Adjacency: Places the suggested cross-sell product directly next to the fast seller's cupboard slot
+export const getCupboardAdjacentCoords = (anchorProduct: Product | undefined): Coordinate3D => {
+  const base = getProductShelfLocation(anchorProduct);
+  // Shift slightly on x (+0.6m or -0.6m depending on cupboard side) and pull slightly forward (+0.15m z)
+  const xOffset = base.x < 0 ? 0.65 : -0.65;
+  return {
+    x: Number((base.x + xOffset).toFixed(2)),
+    y: base.y,
+    z: Number((base.z + 0.15).toFixed(2)),
+    zone: `${base.zone} (Adjacent Slot)`,
+    shelf: base.shelf,
+    slot: (base.slot || 1) + 1,
+  };
 };
 
 export type SwapMode = "cupboard" | "hero_showcase";
@@ -178,6 +216,8 @@ export const buildPlanogramCoordPayload = (
       y: loc.y,
       z: loc.z,
       zone: loc.zone,
+      shelf: loc.shelf,
+      slot: loc.slot,
     };
   });
 

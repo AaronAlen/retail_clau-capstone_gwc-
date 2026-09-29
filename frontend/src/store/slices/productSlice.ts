@@ -11,6 +11,15 @@ export interface Product {
   price: number;
   stock: number;
   imageUrl?: string;
+  coordinates3D?: {
+    x: number;
+    y: number;
+    z: number;
+    zone?: string;
+    shelf?: string;
+    slot?: number;
+    isRelocated?: boolean;
+  };
 }
 
 interface ProductState {
