@@ -43,7 +43,11 @@ const crossCupboardAffinityScore = (source: IProduct, candidate: IProduct): numb
   return score;
 };
 
-export const getSimilarProducts = async (productId: string, limit = 5): Promise<IProduct[]> => {
+export const getSimilarProducts = async (
+  productId: string,
+  limit = 5,
+  excludeProductIds: string[] = []
+): Promise<IProduct[]> => {
   const source = await Product.findById(productId);
   if (!source) return [];
 
@@ -51,11 +55,16 @@ export const getSimilarProducts = async (productId: string, limit = 5): Promise<
   const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
   const otherDepartments = storeDepartments.filter((c) => c.toLowerCase() !== (source.category || "").toLowerCase());
 
+  // Set of IDs to exclude: source product + any externally passed excluded IDs (already allocated to other fast movers)
+  const excludeSet = new Set<string>([String(source._id), ...excludeProductIds.map(String)]);
   const selectedPairs: IProduct[] = [];
 
   // First pass: Guarantee at least ONE top candidate from EACH DIFFERENT CUPBOARD
   for (const dept of otherDepartments) {
-    const deptItems = await Product.find({ category: dept });
+    const deptItems = await Product.find({
+      category: dept,
+      _id: { $nin: Array.from(excludeSet) },
+    });
     if (deptItems.length > 0) {
       const scored = deptItems.map((c) => ({
         product: c,
@@ -64,18 +73,21 @@ export const getSimilarProducts = async (productId: string, limit = 5): Promise<
       scored.sort((a, b) => b.score - a.score);
       if (scored[0]) {
         selectedPairs.push(scored[0].product);
+        excludeSet.add(String(scored[0].product._id));
       }
     }
   }
 
   // Second pass: Fill remaining slots if limit > selected (e.g. limit is 5)
   if (selectedPairs.length < limit) {
-    const existingIds = [source._id, ...selectedPairs.map((p) => p._id)];
     const additional = await Product.find({
       category: { $ne: source.category },
-      _id: { $nin: existingIds },
+      _id: { $nin: Array.from(excludeSet) },
     }).limit(limit - selectedPairs.length);
-    selectedPairs.push(...additional);
+    for (const p of additional) {
+      selectedPairs.push(p);
+      excludeSet.add(String(p._id));
+    }
   }
 
   return selectedPairs.slice(0, limit);
@@ -86,8 +98,27 @@ export const buildRecommendationsForFastMovers = async (
   useAI: boolean
 ): Promise<Recommendation[]> => {
   const recs: Recommendation[] = [];
+  // Prevent duplicate cross-merchandising suggestions across different fast movers:
+  // A product allocated next to Fast Mover A cannot also be allocated next to Fast Mover B,
+  // avoiding physical circular swap loops.
+  const globallyAllocatedProductIds = new Set<string>();
+  fastMovers.forEach((fm) => {
+    if (fm.product && fm.product._id) {
+      globallyAllocatedProductIds.add(String(fm.product._id));
+    }
+  });
+
   for (const fm of fastMovers) {
-    const similarProducts = await getSimilarProducts(String(fm.product._id), 5);
+    const similarProducts = await getSimilarProducts(
+      String(fm.product._id),
+      5,
+      Array.from(globallyAllocatedProductIds)
+    );
+    // Reserve these products globally so subsequent fast movers do not duplicate them
+    similarProducts.forEach((p) => {
+      globallyAllocatedProductIds.add(String(p._id));
+    });
+
     let reason = `${fm.product.name} is selling ${fm.velocityPerDay.toFixed(
       2
     )} units/day, well above its category average. Placing visually similar ${fm.product.color.toLowerCase()} ${fm.product.category.toLowerCase()} nearby can capture the same demand.`;

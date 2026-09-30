@@ -19,9 +19,11 @@ export const explainRecommendation = async (
   const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
   const prompt = `You are a retail merchandising analyst. A product called "${source.name}" (category: ${source.category}, color: ${source.color}) is selling at ${velocityPerDay.toFixed(
     2
-  )} units/day, faster than similar items. Similar in-stock products to cross-merchandise nearby: ${similar
+  )} units/day, faster than similar items. Dedicated in-stock products to cross-merchandise nearby: ${similar
     .map((p) => p.name)
-    .join(", ") || "none found"}. In 2-3 sentences, explain WHY placing these nearby could lift sales, in plain business language for a store manager.`;
+    .join(", ") || "none found"}. 
+PHYSICAL MERCHANDISING CONSTRAINT: In physical store merchandising, each product SKU has a single physical location and MUST NOT be cross-merchandised to multiple fast movers simultaneously to avoid physical swap conflicts and fixture collisions. 
+In 2-3 sentences, explain WHY placing these dedicated partner items adjacent to "${source.name}" lifts cross-department sales, in plain business language for a store manager.`;
 
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
     method: "POST",

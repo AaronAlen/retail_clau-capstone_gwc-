@@ -55,6 +55,7 @@ INSTRUCTIONS:
 - Answer user queries accurately using the live inventory data (prices, stock, categories, velocity) above.
 - Give concise, sharp, high-impact business advice (inventory replenishment, visual layout, discount strategy).
 - Always format key recommendations starting with **Recommendation:** so the UI can highlight it as an action card.
+- DEDICATED MERCHANDISING CONSTRAINT: A single product SKU can only be cross-merchandised to ONE fast-moving showcase at a time. Never suggest placing the exact same partner product adjacent to two different fast movers, as physical store inventory cannot occupy two showcase fixtures simultaneously without causing swap conflicts.
 - Keep responses friendly, structured, and easy to read.`;
     const apiKey = process.env.GROQ_API_KEY;
     const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
