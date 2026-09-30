@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as THREE from "three";
 import {
   Sparkles,
@@ -670,6 +670,24 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       scopePointerGroupRef.current.visible = false;
     }
   };
+
+  const handleCloseInspector = useCallback(() => {
+    setInspectedProduct(null);
+    setHoveredProduct(null);
+    setHoveredMannequin(null);
+    setMobileDrawer("none");
+    isMouseOverUIRef.current = false;
+    if (scopePointerGroupRef.current) {
+      scopePointerGroupRef.current.visible = false;
+    }
+  }, []);
+
+  // Ensure isMouseOverUIRef is cleared when overlays are closed / unmounted
+  useEffect(() => {
+    if (!hoveredMannequin && !inspectedProduct && !searchedProduct) {
+      isMouseOverUIRef.current = false;
+    }
+  }, [hoveredMannequin, inspectedProduct, searchedProduct]);
 
   const fastMoverName = fastMoverProduct?.name || "Beige Cashmere Overcoat";
   const recItemName = pairedProduct?.name || "Black Tailored Denim";
@@ -2632,7 +2650,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     let prevMouseY = 0;
 
     const onMouseDown = (e: MouseEvent) => {
-      if (isMouseOverUIRef.current) return;
+      // If clicking directly on the 3D canvas, always unblock dragging
+      if (e.target === domElement) {
+        isMouseOverUIRef.current = false;
+      }
+      if (isMouseOverUIRef.current && e.target !== domElement) return;
       isDragging = true;
       prevMouseX = e.clientX;
       prevMouseY = e.clientY;
@@ -2644,6 +2666,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     let lastHoveredMesh: THREE.Mesh | null = null;
 
     const onMouseMove = (e: MouseEvent) => {
+      if (e.target === renderer?.domElement) {
+        isMouseOverUIRef.current = false;
+      }
       if (isDragging) {
         const deltaX = e.clientX - prevMouseX;
         const deltaY = e.clientY - prevMouseY;
@@ -2748,13 +2773,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     };
 
     const onWheel = (e: WheelEvent) => {
-      if (isMouseOverUIRef.current) return;
+      if (e.target === domElement) {
+        isMouseOverUIRef.current = false;
+      }
+      if (isMouseOverUIRef.current && e.target !== domElement) return;
       e.preventDefault();
       targetRadius = Math.max(10, Math.min(50, targetRadius + e.deltaY * 0.025));
     };
 
     const onClick = (e: MouseEvent) => {
-      if (isMouseOverUIRef.current) return;
+      if (e.target === domElement) {
+        isMouseOverUIRef.current = false;
+      }
+      if (isMouseOverUIRef.current && e.target !== domElement) return;
       const rect = renderer.domElement.getBoundingClientRect();
       mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -5014,14 +5045,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           }}
           className="absolute top-16 left-4 bottom-14 z-10 w-84 max-w-[350px] pointer-events-auto hidden lg:flex flex-col animate-in fade-in slide-in-from-left duration-200"
         >
-          {renderInspectorCard(() => {
-            setInspectedProduct(null);
-            setHoveredProduct(null);
-            setHoveredMannequin(null);
-            if (scopePointerGroupRef.current) {
-              scopePointerGroupRef.current.visible = false;
-            }
-          })}
+          {renderInspectorCard(handleCloseInspector)}
         </div>
       )}
 
@@ -5044,7 +5068,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       {/* Mobile Drawer Backdrop (Transparent click-catcher with zero blur and passes touches through for 3D rotation) */}
       {mobileDrawer !== "none" && (
         <div
-          onClick={() => setMobileDrawer("none")}
+          onClick={() => {
+            setMobileDrawer("none");
+            isMouseOverUIRef.current = false;
+          }}
           className="lg:hidden fixed inset-0 z-40 pointer-events-none"
         />
       )}
@@ -5052,14 +5079,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       {/* Mobile Product Search Drawer (Real-Time Search & 3D Scope Pointer - 97vh) */}
       {mobileDrawer === "search" && (
         <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
-          {renderMobileSearchDrawer(() => setMobileDrawer("none"))}
+          {renderMobileSearchDrawer(() => {
+            setMobileDrawer("none");
+            isMouseOverUIRef.current = false;
+          })}
         </div>
       )}
 
       {/* Mobile Inspector Drawer (Right-docked, 3D showroom visible on left - 97vh) */}
       {mobileDrawer === "inspect" && (
         <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
-          {renderInspectorCard(() => setMobileDrawer("none"))}
+          {renderInspectorCard(handleCloseInspector)}
         </div>
       )}
 
