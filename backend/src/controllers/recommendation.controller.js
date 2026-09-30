@@ -434,8 +434,13 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
     } else if (activePairId || typeof spotIndex === "number") {
         // Revert all products in the active station / pair
         const query = { status: "active" };
-        if (activePairId) query.activePairId = activePairId;
-        if (typeof spotIndex === "number") query.spotIndex = spotIndex;
+        if (activePairId && typeof spotIndex === "number") {
+            query.$or = [{ activePairId }, { spotIndex }];
+        } else if (activePairId) {
+            query.activePairId = activePairId;
+        } else if (typeof spotIndex === "number") {
+            query.spotIndex = spotIndex;
+        }
 
         const records = await FloorSwap_1.default.find(query);
         for (const rec of records) {

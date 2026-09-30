@@ -494,8 +494,13 @@ export const revertFloorSwap = asyncHandler(async (req: AuthRequest, res: Respon
     }
   } else if (activePairId || typeof spotIndex === "number") {
     const query: any = { status: "active" };
-    if (activePairId) query.activePairId = activePairId;
-    if (typeof spotIndex === "number") query.spotIndex = spotIndex;
+    if (activePairId && typeof spotIndex === "number") {
+      query.$or = [{ activePairId }, { spotIndex }];
+    } else if (activePairId) {
+      query.activePairId = activePairId;
+    } else if (typeof spotIndex === "number") {
+      query.spotIndex = spotIndex;
+    }
 
     const records = await FloorSwap.find(query);
     for (const rec of records) {

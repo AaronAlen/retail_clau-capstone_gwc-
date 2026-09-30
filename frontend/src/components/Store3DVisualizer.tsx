@@ -232,6 +232,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
   const [actionLoading, setActionLoading] = useState(false);
   const [isSwapAnimating, setIsSwapAnimating] = useState(false);
+  const isSwapAnimatingRef = useRef(false);
+  useEffect(() => {
+    isSwapAnimatingRef.current = isSwapAnimating;
+  }, [isSwapAnimating]);
+
+  const strategyTabRef = useRef(strategyTab);
+  useEffect(() => {
+    strategyTabRef.current = strategyTab;
+  }, [strategyTab]);
+
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const triggerFlightAnimationRef = useRef<((forward?: boolean, specificProductIds?: string[]) => void) | null>(null);
   const snapToAppliedPositionsRef = useRef<(() => void) | null>(null);
@@ -860,12 +870,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         setPlanogramApplied(true);
         planogramAppliedRef.current = true;
 
-        const productIds: string[] = (data.executedItems || []).map((it: any) => it.productId).filter(Boolean);
+        const productIds: string[] = (data.executedItems || []).map((it: any) => String(it.productId)).filter(Boolean);
         const staff = data.staffName || "Floor Staff";
         const time = data.timestamp || new Date().toISOString();
 
+        productIds.forEach((id) => {
+          executedFloorItemsRef.current[id] = true;
+        });
+
         // 🚀 Trigger 3D flight animation for the executed items across whatever station was swapped!
-        triggerFlightAnimationRef.current?.(true, productIds);
+        if (!isSwapAnimatingRef.current) {
+          triggerFlightAnimationRef.current?.(true, productIds);
+        }
 
         // Mark items as executed in local state
         setExecutedFloorItems((prev) => {
@@ -894,14 +910,20 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       const data = payload as any;
       if (data) {
         if (data.all) {
+          executedFloorItemsRef.current = {};
           setExecutedFloorItems({});
           setFloorSwapStaffMap({});
           setFloorCheckedItems({});
-          triggerFlightAnimationRef.current?.(false);
           setPlanogramApplied(false);
           planogramAppliedRef.current = false;
+          if (!isSwapAnimatingRef.current) {
+            triggerFlightAnimationRef.current?.(false);
+          }
         } else {
-          const revertedIds: string[] = data.revertedProductIds || [];
+          const revertedIds: string[] = (data.revertedProductIds || []).map(String);
+          revertedIds.forEach((id) => {
+            delete executedFloorItemsRef.current[id];
+          });
           setExecutedFloorItems((prev) => {
             const next = { ...prev };
             revertedIds.forEach((id) => {
@@ -916,12 +938,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             });
             return next;
           });
-          // Trigger flight animation backwards to shelves for these items!
-          triggerFlightAnimationRef.current?.(false, revertedIds);
 
-          if (data.remainingActive === 0) {
+          if (data.remainingActive === 0 || Object.keys(executedFloorItemsRef.current).length === 0) {
             setPlanogramApplied(false);
             planogramAppliedRef.current = false;
+          }
+          // Trigger flight animation backwards to shelves for these items!
+          if (!isSwapAnimatingRef.current) {
+            triggerFlightAnimationRef.current?.(false, revertedIds);
           }
         }
 
@@ -1205,6 +1229,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           return next;
         });
 
+        tasksToExecute.forEach((t) => {
+          executedFloorItemsRef.current[t.item._id] = true;
+          executedFloorItemsRef.current[String(t.item._id)] = true;
+        });
+
         // Clear checked state for these items
         setFloorCheckedItems((prev) => {
           const next = { ...prev };
@@ -1243,6 +1272,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         staffName: staffLabel,
       });
       if (res.data?.success) {
+        delete executedFloorItemsRef.current[task.item._id];
+        delete executedFloorItemsRef.current[String(task.item._id)];
+        if (task.displaced?.item) {
+          delete executedFloorItemsRef.current[task.displaced.item._id];
+          delete executedFloorItemsRef.current[String(task.displaced.item._id)];
+        }
         setExecutedFloorItems((prev) => {
           const next = { ...prev };
           delete next[task.item._id];
@@ -1255,6 +1290,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           if (task.displaced?.item) delete next[task.displaced.item._id];
           return next;
         });
+        if (Object.keys(executedFloorItemsRef.current).length === 0) {
+          planogramAppliedRef.current = false;
+          setPlanogramApplied(false);
+        }
         // Trigger flight animation backwards to shelves for this item
         triggerFlightAnimationRef.current?.(false, [task.item._id]);
         dispatch(fetchProducts());
@@ -1284,7 +1323,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       });
 
       if (res.data?.success) {
-        const revertedIds: string[] = res.data.payload?.revertedProductIds || [];
+        const revertedIds: string[] = (res.data.payload?.revertedProductIds || []).map(String);
+        revertedIds.forEach((id) => {
+          delete executedFloorItemsRef.current[id];
+        });
         setExecutedFloorItems((prev) => {
           const next = { ...prev };
           revertedIds.forEach((id) => {
@@ -1299,6 +1341,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           });
           return next;
         });
+        if (Object.keys(executedFloorItemsRef.current).length === 0) {
+          planogramAppliedRef.current = false;
+          setPlanogramApplied(false);
+        }
         triggerFlightAnimationRef.current?.(false, revertedIds);
         dispatch(fetchProducts());
         showToast(
@@ -1326,6 +1372,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     try {
       const res = await api.post("/recommendations/reset-all-showroom");
       if (res.data?.success) {
+        executedFloorItemsRef.current = {};
+        planogramAppliedRef.current = false;
+        setPlanogramApplied(false);
         setExecutedFloorItems({});
         setFloorSwapStaffMap({});
         setFloorCheckedItems({});
@@ -1743,11 +1792,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         // Create product mesh in world space for smooth relocation
         const pMesh = createProductMesh(prod, worldX, worldY, worldZ);
         scene.add(pMesh);
-        productGroupsMap.set(prod._id, {
+        const pEntry = {
           group: pMesh,
           originalPos: new THREE.Vector3(worldX, worldY, worldZ),
           product: prod,
-        });
+        };
+        productGroupsMap.set(prod._id, pEntry);
+        productGroupsMap.set(String(prod._id), pEntry);
       });
 
       scene.add(group);
@@ -1839,11 +1890,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
       const sMesh = createProductMesh(shoe, worldX, worldY, worldZ);
       scene.add(sMesh);
-      productGroupsMap.set(shoe._id, {
+      const sEntry = {
         group: sMesh,
         originalPos: new THREE.Vector3(worldX, worldY, worldZ),
         product: shoe,
-      });
+      };
+      productGroupsMap.set(shoe._id, sEntry);
+      productGroupsMap.set(String(shoe._id), sEntry);
     });
 
     scene.add(footwearGalleryGroup);
@@ -2625,24 +2678,39 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     rebuildGuideRoutesRef.current = rebuildGuideRoutes;
     rebuildGuideRoutes(selectedSuggestionIdxRef.current);
 
+    // 🚀 Flight Animation Controller for Dramatic 3D Swap (Supports selective item-by-item live floor execution!)
+    const flightAnim = {
+      active: false,
+      startTime: 0,
+      duration: 2000,
+      forward: true,
+      specificProductIds: undefined as Set<string> | undefined,
+    };
+
     // Synchronize 3D products and mannequin outfits according to applied and executed floor swaps
     const syncPositionsAndOutfits = () => {
+      if (flightAnim.active) return; // Prevent mid-flight disruption
+
       if (isHeroMode) {
         heroRunwayOutfits.forEach((hero) => {
           const m = mannequins[hero.index];
           if (!m) return;
-          const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
-          const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
-          const pGroup = productGroupsMap.get(hero.outfit.pants._id);
-          const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
+          const jGroup = productGroupsMap.get(hero.outfit.jacket._id) || productGroupsMap.get(String(hero.outfit.jacket._id));
+          const tGroup = productGroupsMap.get(hero.outfit.tshirt._id) || productGroupsMap.get(String(hero.outfit.tshirt._id));
+          const pGroup = productGroupsMap.get(hero.outfit.pants._id) || productGroupsMap.get(String(hero.outfit.pants._id));
+          const sGroup = productGroupsMap.get(hero.outfit.shoes._id) || productGroupsMap.get(String(hero.outfit.shoes._id));
 
-          const isFullStationApplied = Boolean(
-            planogramAppliedRef.current && hero.index === selectedSuggestionIdxRef.current
+          // In AI Planogram visual simulation mode (when user is in strategy tab), full station is previewed
+          const isPlanogramSimulated = Boolean(
+            planogramAppliedRef.current &&
+            strategyTabRef.current !== "floor_tasks" &&
+            hero.index === selectedSuggestionIdxRef.current
           );
-          const isJacketActive = Boolean(executedFloorItemsRef.current[hero.outfit.jacket._id]) || isFullStationApplied;
-          const isTshirtActive = Boolean(executedFloorItemsRef.current[hero.outfit.tshirt._id]) || isFullStationApplied;
-          const isPantsActive = Boolean(executedFloorItemsRef.current[hero.outfit.pants._id]) || isFullStationApplied;
-          const isShoesActive = Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id]) || isFullStationApplied;
+
+          const isJacketActive = Boolean(executedFloorItemsRef.current[hero.outfit.jacket._id] || executedFloorItemsRef.current[String(hero.outfit.jacket._id)]) || isPlanogramSimulated;
+          const isTshirtActive = Boolean(executedFloorItemsRef.current[hero.outfit.tshirt._id] || executedFloorItemsRef.current[String(hero.outfit.tshirt._id)]) || isPlanogramSimulated;
+          const isPantsActive = Boolean(executedFloorItemsRef.current[hero.outfit.pants._id] || executedFloorItemsRef.current[String(hero.outfit.pants._id)]) || isPlanogramSimulated;
+          const isShoesActive = Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id] || executedFloorItemsRef.current[String(hero.outfit.shoes._id)]) || isPlanogramSimulated;
 
           // 1. Outerwear Jacket
           if (jGroup) {
@@ -2652,6 +2720,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             } else {
               jGroup.group.position.copy(jGroup.originalPos);
               jGroup.group.visible = true;
+              jGroup.group.scale.setScalar(1.0);
             }
           }
 
@@ -2663,6 +2732,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             } else {
               tGroup.group.position.copy(tGroup.originalPos);
               tGroup.group.visible = true;
+              tGroup.group.scale.setScalar(1.0);
             }
           }
 
@@ -2674,6 +2744,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             } else {
               pGroup.group.position.copy(pGroup.originalPos);
               pGroup.group.visible = true;
+              pGroup.group.scale.setScalar(1.0);
             }
           }
 
@@ -2685,6 +2756,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             } else {
               sGroup.group.position.copy(sGroup.originalPos);
               sGroup.group.visible = true;
+              sGroup.group.scale.setScalar(1.0);
             }
           }
 
@@ -2730,18 +2802,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       }
     };
 
-    if (planogramAppliedRef.current) {
-      syncPositionsAndOutfits();
-    } else {
-      productGroupsMap.forEach((entry) => {
-        entry.group.position.copy(entry.originalPos);
-        entry.group.visible = true;
-        entry.group.scale.setScalar(1.0);
-      });
-      mannequins.forEach((m) => {
-        m.updateOutfit(null);
-      });
-    }
+    syncPositionsAndOutfits();
 
     snapToAppliedPositionsRef.current = () => {
       syncPositionsAndOutfits();
@@ -2750,21 +2811,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       });
     };
 
-    // 🚀 Flight Animation Controller for Dramatic 3D Swap (Supports selective item-by-item live floor execution!)
-    const flightAnim = {
-      active: false,
-      startTime: 0,
-      duration: 2000,
-      forward: true,
-      specificProductIds: undefined as Set<string> | undefined,
-    };
-
     triggerFlightAnimationRef.current = (forward = true, specificProductIds?: string[]) => {
       flightAnim.active = true;
       flightAnim.startTime = performance.now();
       flightAnim.duration = 2000;
       flightAnim.forward = forward;
-      flightAnim.specificProductIds = specificProductIds && specificProductIds.length > 0 ? new Set(specificProductIds) : undefined;
+      flightAnim.specificProductIds = specificProductIds && specificProductIds.length > 0 ? new Set(specificProductIds.map(String)) : undefined;
       setIsSwapAnimating(true);
       setTimeout(() => setIsSwapAnimating(false), 2050);
     };
@@ -3139,28 +3191,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const arcY = Math.sin(progress * Math.PI) * 4.2;
 
         if (isHeroMode) {
-          // 🌟 HERO SHOWCASE: Dedicated 4-piece outfit flies to selected mannequin
-          const activeHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
+          // 🌟 HERO SHOWCASE: Dedicated 4-piece outfit flies between shelf and mannequin
           const specificIds = flightAnim.specificProductIds;
           const targetHeroes = specificIds
             ? heroRunwayOutfits.filter((hero) => {
-                const hIds = [hero.outfit.jacket._id, hero.outfit.tshirt._id, hero.outfit.pants._id, hero.outfit.shoes._id];
+                const hIds = [
+                  String(hero.outfit.jacket._id),
+                  String(hero.outfit.tshirt._id),
+                  String(hero.outfit.pants._id),
+                  String(hero.outfit.shoes._id),
+                ];
                 return hIds.some((id) => specificIds.has(id));
               })
-            : [activeHero];
+            : heroRunwayOutfits;
+
           targetHeroes.forEach((hero) => {
             const m = mannequins[hero.index];
             if (!m) return;
 
-            const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
-            const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
-            const pGroup = productGroupsMap.get(hero.outfit.pants._id);
-            const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
+            const jGroup = productGroupsMap.get(hero.outfit.jacket._id) || productGroupsMap.get(String(hero.outfit.jacket._id));
+            const tGroup = productGroupsMap.get(hero.outfit.tshirt._id) || productGroupsMap.get(String(hero.outfit.tshirt._id));
+            const pGroup = productGroupsMap.get(hero.outfit.pants._id) || productGroupsMap.get(String(hero.outfit.pants._id));
+            const sGroup = productGroupsMap.get(hero.outfit.shoes._id) || productGroupsMap.get(String(hero.outfit.shoes._id));
             const animItems = [
-              { id: hero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
-              { id: hero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
-              { id: hero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
-              { id: hero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
+              { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos },
+              { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos },
+              { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos },
+              { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos },
             ];
 
             let hasFlightItemForThisHero = false;
@@ -3173,6 +3230,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               group.group.visible = true;
 
               if (flightAnim.forward) {
+                // Shelf -> Mannequin
                 group.group.position.x = pStart.x + (pEnd.x - pStart.x) * t;
                 group.group.position.y = pStart.y + (pEnd.y - pStart.y) * t + arcY;
                 group.group.position.z = pStart.z + (pEnd.z - pStart.z) * t;
@@ -3182,14 +3240,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                 const s = t < 0.65 ? 1.0 : Math.max(0.001, (1.0 - t) / 0.35);
                 group.group.scale.setScalar(s);
               } else {
+                // Mannequin -> Shelf (Reverse swap flight):
+                // Takes off directly from mannequin and arcs back across the showroom to the shelf!
                 group.group.position.x = pEnd.x + (pStart.x - pEnd.x) * t;
                 group.group.position.y = pEnd.y + (pStart.y - pEnd.y) * t + arcY;
                 group.group.position.z = pEnd.z + (pStart.z - pEnd.z) * t;
                 group.group.rotation.y = -t * Math.PI * 4;
 
-                // Box expands back to 1.0 as it returns to shelf
-                const s = t < 0.35 ? Math.max(0.001, t / 0.35) : 1.0;
-                group.group.scale.setScalar(s);
+                // 100% VISIBLE at scale 1.0 from the moment it lifts off the doll to landing on shelf!
+                group.group.scale.setScalar(1.0);
               }
             });
 
@@ -3200,16 +3259,21 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               const targetPHex = getColorHexFromName(hero.outfit.pants.color, 0x1e293b);
               const targetSHex = getColorHexFromName(hero.outfit.shoes.color, 0x0f172a);
 
+              const isJFlying = !specificIds || specificIds.has(String(hero.outfit.jacket._id));
+              const isTFlying = !specificIds || specificIds.has(String(hero.outfit.tshirt._id));
+              const isPFlying = !specificIds || specificIds.has(String(hero.outfit.pants._id));
+              const isSFlying = !specificIds || specificIds.has(String(hero.outfit.shoes._id));
+
               if (flightAnim.forward) {
-                m.jacketMat.color.copy(new THREE.Color(m.defaultTorsoColor)).lerp(new THREE.Color(targetJHex), t);
-                m.innerTopMat.color.copy(new THREE.Color(m.defaultInnerColor)).lerp(new THREE.Color(targetTHex), t);
-                m.pantsMat.color.copy(new THREE.Color(m.defaultPantsColor)).lerp(new THREE.Color(targetPHex), t);
-                m.shoesMat.color.copy(new THREE.Color(m.defaultShoesColor)).lerp(new THREE.Color(targetSHex), t);
+                if (isJFlying) m.jacketMat.color.copy(new THREE.Color(m.defaultTorsoColor)).lerp(new THREE.Color(targetJHex), t);
+                if (isTFlying) m.innerTopMat.color.copy(new THREE.Color(m.defaultInnerColor)).lerp(new THREE.Color(targetTHex), t);
+                if (isPFlying) m.pantsMat.color.copy(new THREE.Color(m.defaultPantsColor)).lerp(new THREE.Color(targetPHex), t);
+                if (isSFlying) m.shoesMat.color.copy(new THREE.Color(m.defaultShoesColor)).lerp(new THREE.Color(targetSHex), t);
               } else {
-                m.jacketMat.color.copy(new THREE.Color(targetJHex)).lerp(new THREE.Color(m.defaultTorsoColor), t);
-                m.innerTopMat.color.copy(new THREE.Color(targetTHex)).lerp(new THREE.Color(m.defaultInnerColor), t);
-                m.pantsMat.color.copy(new THREE.Color(targetPHex)).lerp(new THREE.Color(m.defaultPantsColor), t);
-                m.shoesMat.color.copy(new THREE.Color(targetSHex)).lerp(new THREE.Color(m.defaultShoesColor), t);
+                if (isJFlying) m.jacketMat.color.copy(new THREE.Color(targetJHex)).lerp(new THREE.Color(m.defaultTorsoColor), t);
+                if (isTFlying) m.innerTopMat.color.copy(new THREE.Color(targetTHex)).lerp(new THREE.Color(m.defaultInnerColor), t);
+                if (isPFlying) m.pantsMat.color.copy(new THREE.Color(targetPHex)).lerp(new THREE.Color(m.defaultPantsColor), t);
+                if (isSFlying) m.shoesMat.color.copy(new THREE.Color(targetSHex)).lerp(new THREE.Color(m.defaultShoesColor), t);
               }
             }
           });
@@ -3258,35 +3322,38 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         if (progress >= 1.0) {
           flightAnim.active = false;
           if (isHeroMode) {
-            const activeHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
             const specificIds = flightAnim.specificProductIds;
             const targetHeroes = specificIds
               ? heroRunwayOutfits.filter((hero) => {
-                  const hIds = [hero.outfit.jacket._id, hero.outfit.tshirt._id, hero.outfit.pants._id, hero.outfit.shoes._id];
+                  const hIds = [
+                    String(hero.outfit.jacket._id),
+                    String(hero.outfit.tshirt._id),
+                    String(hero.outfit.pants._id),
+                    String(hero.outfit.shoes._id),
+                  ];
                   return hIds.some((id) => specificIds.has(id));
                 })
-              : [activeHero];
+              : heroRunwayOutfits;
+
             targetHeroes.forEach((hero) => {
               const m = mannequins[hero.index];
               if (!m) return;
 
-              const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
-              const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
-              const pGroup = productGroupsMap.get(hero.outfit.pants._id);
-              const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
+              const jGroup = productGroupsMap.get(hero.outfit.jacket._id) || productGroupsMap.get(String(hero.outfit.jacket._id));
+              const tGroup = productGroupsMap.get(hero.outfit.tshirt._id) || productGroupsMap.get(String(hero.outfit.tshirt._id));
+              const pGroup = productGroupsMap.get(hero.outfit.pants._id) || productGroupsMap.get(String(hero.outfit.pants._id));
+              const sGroup = productGroupsMap.get(hero.outfit.shoes._id) || productGroupsMap.get(String(hero.outfit.shoes._id));
 
               const animItems = [
-                { id: hero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
-                { id: hero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
-                { id: hero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
-                { id: hero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
+                { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos },
+                { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos },
+                { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos },
+                { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos },
               ];
 
-              let affectedItemsCount = 0;
               animItems.forEach(({ id, group, target }) => {
                 if (!group) return;
                 if (specificIds && !specificIds.has(id)) return;
-                affectedItemsCount++;
                 group.group.rotation.y = 0;
                 if (flightAnim.forward) {
                   // Forward swap: box reached mannequin -> hide shelf box, mannequin wears actual 3D accessories!
