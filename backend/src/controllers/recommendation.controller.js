@@ -132,8 +132,11 @@ exports.recalculateRecommendations = (0, express_async_handler_1.default)(async 
 
     try {
         const useAI = req.query.ai !== "false" && req.body?.ai !== false;
-        console.log(`[Recommendations] Manual recalculation triggered by ${req.user.name} (${req.user.role}) with AI=${useAI}`);
-        
+        // Automatically reset previous floor swaps to reverted and restore baseline coordinates
+        // so the new strategy starts from a completely clean, uncorrupted baseline!
+        await FloorSwap_1.default.updateMany({ status: "active" }, { $set: { status: "reverted", revertedAt: new Date() } });
+        await (0, updateCoordinates_1.resetAllProductsToBaselineCoords)();
+
         const freshRecs = await generateRecommendationsCalculation(useAI);
 
         const snapshot = await RecommendationSnapshot_1.default.create({

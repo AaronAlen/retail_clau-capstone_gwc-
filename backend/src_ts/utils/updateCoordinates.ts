@@ -110,6 +110,33 @@ export const computeProductCoordinates = (category: string, indexInCat: number):
   };
 };
 
+export const resetAllProductsToBaselineCoords = async (): Promise<boolean> => {
+  try {
+    const productsCollection = mongoose.connection.collection("products");
+    const products = await productsCollection.find({}).sort({ sku: 1 }).toArray();
+    const categories = ["Jackets", "Jeans", "Shirts", "T-Shirts", "Shoes"];
+    for (const cat of categories) {
+      const catProducts = products.filter((p) => p.category === cat);
+      for (let i = 0; i < catProducts.length; i++) {
+        const prod = catProducts[i];
+        const coords = computeProductCoordinates(cat, i);
+        await productsCollection.updateOne(
+          { _id: prod._id },
+          {
+            $set: {
+              coordinates3D: coords,
+            },
+          }
+        );
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error("Failed to reset products to baseline coords:", err);
+    return false;
+  }
+};
+
 const runMigration = async () => {
   console.log("Connecting to MongoDB Atlas...");
   await mongoose.connect(MONGO_URI);

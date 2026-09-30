@@ -8,6 +8,7 @@ import Product from "../models/Product";
 import FloorSwap from "../models/FloorSwap";
 import RecommendationSnapshot from "../models/RecommendationSnapshot";
 import { getIO } from "../sockets";
+import { resetAllProductsToBaselineCoords } from "../utils/updateCoordinates";
 
 /**
  * Internal computation generator for 8 strategic store pairs
@@ -126,6 +127,12 @@ export const recalculateRecommendations = asyncHandler(async (req: AuthRequest, 
 
   try {
     const useAI = req.query.ai !== "false" && req.body?.ai !== false;
+
+    // Automatically reset previous floor swaps to reverted and restore baseline coordinates
+    // so the new strategy starts from a completely clean, uncorrupted baseline!
+    await FloorSwap.updateMany({ status: "active" }, { $set: { status: "reverted", revertedAt: new Date() } });
+    await resetAllProductsToBaselineCoords();
+
     const freshRecs = await generateRecommendationsCalculation(useAI);
 
     const snapshot = await RecommendationSnapshot.create({
