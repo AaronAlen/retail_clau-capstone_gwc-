@@ -4671,16 +4671,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       {/* 3D WebGL Canvas */}
       <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "none" }} />
 
-      {/* 📱 MOBILE LANDSCAPE FLOATING TITLE BADGE (Clean, minimal, no buttons or strange backdrops) */}
-      {(isMobileLandscape || isForcedRotate90) && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center justify-center">
-          <div className="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-amber-500/50 shadow-2xl bg-stone-950/90 text-xs font-black text-amber-300">
-            <Smartphone className="w-4 h-4 text-amber-400 rotate-90" />
-            <span className="text-white font-extrabold tracking-wide">Landscape Runway</span>
-          </div>
-        </div>
-      )}
-
       {/* 🌟 1. TOP HEADER BAR: STORE BRANDING, 3D SCOPE SEARCH & CONTROLS */}
       <div className="absolute top-3 left-2 sm:left-4 right-2 sm:right-4 z-20 flex items-center justify-between gap-1.5 sm:gap-2.5 pointer-events-none">
         {/* Left: Department Store Badge */}
@@ -4712,7 +4702,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           </div>
         </div>
 
-        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING (Hidden on Mobile, Display None) */}
+        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING */}
         <div
           ref={searchContainerRef}
           onMouseEnter={() => {
@@ -4721,7 +4711,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="hidden md:flex relative pointer-events-auto flex-1 max-w-xs md:max-w-sm z-30"
+          className="flex relative pointer-events-auto flex-1 min-w-[70px] max-w-[150px] sm:max-w-xs md:max-w-sm z-30"
         >
           <div className="relative flex items-center">
             <Search className="w-3.5 h-3.5 text-amber-400 absolute left-2.5 sm:left-3 pointer-events-none" />
@@ -4941,21 +4931,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
       {/* 📱 MOBILE QUICK ACTION BOTTOM DOCK FOR FLOOR STAFF */}
       <div className="lg:hidden absolute bottom-2.5 left-2 sm:left-3 right-2 sm:right-3 z-30 flex items-center justify-between gap-1 p-1 rounded-2xl glass-panel border border-amber-500/40 bg-stone-950/90 shadow-2xl pointer-events-auto">
-        <button
-          onClick={() => {
-            setMobileDrawer(mobileDrawer === "search" ? "none" : "search");
-            setIsSearchOpen(true);
-          }}
-          className={`flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-all border ${
-            mobileDrawer === "search" || searchedProduct
-              ? "bg-amber-500 text-stone-950 border-amber-300 font-bold shadow-md shadow-amber-500/30"
-              : "border-stone-800 text-stone-300 hover:text-white"
-          }`}
-          title="Search all 60 products across showroom"
-        >
-          <Search className={`w-3 h-3 ${mobileDrawer === "search" || searchedProduct ? "text-stone-950" : "text-amber-400"}`} />
-          <span className="truncate">Search</span>
-        </button>
 
         <button
           onClick={() => setMobileDrawer(mobileDrawer === "strategy" ? "none" : "strategy")}
