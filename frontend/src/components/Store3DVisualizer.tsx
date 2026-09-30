@@ -925,104 +925,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     }
   };
 
-  // Apply Planogram Action with Mutual Swaps
+  // Apply Planogram Action (Local Visual Simulation only - DB & WebSockets are strictly Floor Tasks)
   const handleApplyPlanogram = async () => {
     if (!fastMoverProduct || !pairedProduct) return;
     setActionLoading(true);
     setIsSwapAnimating(true);
     try {
       const selectedHero = heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0];
-      const mutualSwapList =
-        swapMode === "hero_showcase"
-          ? [
-              {
-                suggestedId: selectedHero.outfit.jacket._id,
-                suggestedName: selectedHero.outfit.jacket.name,
-                originalCoordsForSuggested: getProductShelfLocation(selectedHero.outfit.jacket),
-                targetCoordsForSuggested: {
-                  x: selectedHero.worldTargetPos.x,
-                  y: selectedHero.worldTargetPos.y,
-                  z: selectedHero.worldTargetPos.z,
-                  zone: `${selectedHero.targetZone} (Outerwear)`,
-                },
-                stationName: selectedHero.stationName,
-                badge: `${selectedHero.badge} Outerwear`,
-                lift: selectedHero.lift,
-              },
-              {
-                suggestedId: selectedHero.outfit.tshirt._id,
-                suggestedName: selectedHero.outfit.tshirt.name,
-                originalCoordsForSuggested: getProductShelfLocation(selectedHero.outfit.tshirt),
-                targetCoordsForSuggested: {
-                  x: selectedHero.worldTargetPos.x,
-                  y: selectedHero.worldTargetPos.y,
-                  z: selectedHero.worldTargetPos.z,
-                  zone: `${selectedHero.targetZone} (Topwear)`,
-                },
-                stationName: selectedHero.stationName,
-                badge: `${selectedHero.badge} Topwear`,
-                lift: selectedHero.lift,
-              },
-              {
-                suggestedId: selectedHero.outfit.pants._id,
-                suggestedName: selectedHero.outfit.pants.name,
-                originalCoordsForSuggested: getProductShelfLocation(selectedHero.outfit.pants),
-                targetCoordsForSuggested: {
-                  x: selectedHero.worldTargetPos.x,
-                  y: selectedHero.worldTargetPos.y - 0.7,
-                  z: selectedHero.worldTargetPos.z,
-                  zone: `${selectedHero.targetZone} (Bottomwear)`,
-                },
-                stationName: selectedHero.stationName,
-                badge: `${selectedHero.badge} Bottomwear`,
-                lift: selectedHero.lift,
-              },
-              {
-                suggestedId: selectedHero.outfit.shoes._id,
-                suggestedName: selectedHero.outfit.shoes.name,
-                originalCoordsForSuggested: getProductShelfLocation(selectedHero.outfit.shoes),
-                targetCoordsForSuggested: {
-                  x: selectedHero.worldTargetPos.x,
-                  y: selectedHero.worldTargetPos.y - 1.4,
-                  z: selectedHero.worldTargetPos.z,
-                  zone: `${selectedHero.targetZone} (Footwear)`,
-                },
-                stationName: selectedHero.stationName,
-                badge: `${selectedHero.badge} Footwear`,
-                lift: selectedHero.lift,
-              },
-            ]
-          : swapPairs.map((pair) => {
-              const sLoc = getProductShelfLocation(pair.suggested);
-              const nLoc = getProductShelfLocation(pair.neighbor);
-              return {
-                suggestedId: pair.suggested._id,
-                neighborId: pair.neighbor._id,
-                suggestedName: pair.suggested.name,
-                neighborName: pair.neighbor.name,
-                originalCoordsForSuggested: sLoc,
-                originalCoordsForNeighbor: nLoc,
-                targetCoordsForSuggested: {
-                  ...nLoc,
-                  zone: `${nLoc.zone} (Planogram Swapped Beside Fast Mover)`,
-                },
-                targetCoordsForNeighbor: {
-                  ...sLoc,
-                  zone: `${sLoc.zone} (Relocated Vacancy Slot)`,
-                },
-              };
-            });
-
-      const payload = buildPlanogramCoordPayload(
-        activeSuggestion.id,
-        fastMoverProduct,
-        pairedProduct,
-        allSuggestingPartners,
-        activeSuggestion.lift,
-        selectedSuggestionIdx,
-        swapMode,
-        mutualSwapList
-      );
       planogramAppliedRef.current = true;
       setPlanogramApplied(true);
       const appliedProdIds =
@@ -1035,35 +944,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             ]
           : swapPairs.map((p) => p.suggested._id);
       triggerFlightAnimationRef.current?.(true, appliedProdIds);
-      await api.post("/recommendations/apply-planogram", payload);
+      // NOTE: User requested AI Planogram to be purely local visual simulation (no DB update, no WebSockets).
+      // Only Floor Tasks will persist to MongoDB and broadcast via WebSockets.
       showToast(
         swapMode === "hero_showcase"
-          ? `Planogram Active: ${selectedHero.badge} Outfit promoted to Runway Mannequin #${selectedSuggestionIdx + 1}!`
-          : `Planogram Active: ${swapPairs.length} product pairs mutually swapped cleanly across cupboards!`,
+          ? `✨ Visual Simulation: ${selectedHero.badge} Outfit promoted to Runway Mannequin #${selectedSuggestionIdx + 1}! (Floor Tasks-ல் சேமித்தால் மட்டுமே DB & WebSockets-ல் sync ஆகும்)`
+          : `✨ Visual Simulation: ${swapPairs.length} product pairs flying across cupboards! (Floor Tasks-ல் சேமித்தால் மட்டுமே DB & WebSockets-ல் sync ஆகும்)`,
         "success"
       );
-      dispatch(fetchProducts());
     } catch {
-      showToast("Failed to apply planogram.", "error");
+      showToast("Failed to simulate planogram.", "error");
     } finally {
       setActionLoading(false);
     }
   };
 
-  // Reset Planogram
+  // Reset Planogram (Local Visual Simulation only)
   const handleResetPlanogram = async () => {
     setActionLoading(true);
     try {
       planogramAppliedRef.current = false;
       setPlanogramApplied(false);
-      setExecutedFloorItems({});
-      setFloorCheckedItems({});
       triggerFlightAnimationRef.current?.(false);
-      await api.post("/recommendations/reset-planogram");
-      showToast("Showroom layout restored to baseline native shelves.", "info");
-      dispatch(fetchProducts());
+      // NOTE: User requested AI Planogram to be purely local visual simulation.
+      // Floor Tasks records are preserved and only managed via Floor Tasks tab.
+      showToast("🔄 Showroom visual simulation reset locally to baseline shelves.", "info");
     } catch {
-      showToast("Failed to reset planogram.", "error");
+      showToast("Failed to reset visual preview.", "error");
     } finally {
       setActionLoading(false);
     }
@@ -1182,8 +1089,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const handleRevertFloorSwapItem = async (task: any) => {
     setIsSavingFloorSwap(true);
     try {
+      const staffLabel = currentUser ? `${currentUser.name} (${currentUser.role.toUpperCase()})` : "Floor Staff";
       const res = await api.post("/recommendations/floor-swap/revert", {
         productId: task.item._id,
+        staffName: staffLabel,
       });
       if (res.data?.success) {
         setExecutedFloorItems((prev) => {
@@ -1219,9 +1128,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           ? (heroRunwayPairs[selectedSuggestionIdx]?.mannequinId || `mannequin-hero-${selectedSuggestionIdx + 1}`)
           : (suggestions[selectedSuggestionIdx]?.id || `sug-${selectedSuggestionIdx + 1}`);
 
+      const staffLabel = currentUser ? `${currentUser.name} (${currentUser.role.toUpperCase()})` : "Floor Staff";
       const res = await api.post("/recommendations/floor-swap/revert", {
         activePairId,
         spotIndex: selectedSuggestionIdx,
+        staffName: staffLabel,
       });
 
       if (res.data?.success) {
@@ -4499,7 +4410,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             <>
               <div className="w-full py-1.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500/20 via-amber-500/20 to-purple-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-black flex items-center justify-center gap-1.5 shadow-md">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Planogram Active ({activeSuggestion.lift} Lift) ✓</span>
+                <span>Visual Simulation Active ({activeSuggestion.lift} Lift) ✓</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5">
                 <button
@@ -4517,7 +4428,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   className="py-1.5 px-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-[10px] font-semibold flex items-center justify-center gap-1 transition-all cursor-pointer border border-stone-700"
                 >
                   <RotateCw className="w-3 h-3 text-amber-400" />
-                  <span>Reset Baseline</span>
+                  <span>Reset Preview</span>
                 </button>
               </div>
             </>
@@ -4528,7 +4439,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               className="w-full py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition-all shadow-md cursor-pointer bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:brightness-110 text-stone-950 shadow-orange-500/25 disabled:opacity-50"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              <span>Apply Planogram in 3D Showroom</span>
+              <span>Simulate Planogram in 3D (Visual Preview)</span>
             </button>
           )}
         </div>

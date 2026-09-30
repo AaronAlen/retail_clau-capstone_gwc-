@@ -43,16 +43,15 @@ const Recommendations: React.FC = () => {
         index,
         mode
       );
-      await api.post("/recommendations/apply-planogram", payload);
       showToast(
         mode === "cupboard"
-          ? `Planogram Active: ${rec.similarProducts[0]?.name || "Partner"} relocated adjacent to ${rec.sourceProduct.name} in native shelf!`
-          : `Planogram Active: Pair promoted to Hero Station ${getPopularSpotByIndex(index).code}!`,
+          ? `✨ Visual Simulation: ${rec.similarProducts[0]?.name || "Partner"} paired adjacent to ${rec.sourceProduct.name}! (Physical store swaps are executed in Floor Tasks)`
+          : `✨ Visual Simulation: Pair previewed for Hero Station ${getPopularSpotByIndex(index).code}! (Physical store swaps are executed in Floor Tasks)`,
         "success"
       );
     } catch (err) {
-      console.error("Failed to apply planogram in 3D:", err);
-      showToast("Failed to apply planogram to database.", "error");
+      console.error("Failed to preview planogram:", err);
+      showToast("Failed to preview planogram.", "error");
     } finally {
       setTimeout(() => setSwappingId(null), 1500);
     }

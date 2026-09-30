@@ -53,133 +53,23 @@ exports.getPlanogramState = (0, express_async_handler_1.default)(async (req, res
     res.json(planogram);
 });
 exports.applyPlanogram = (0, express_async_handler_1.default)(async (req, res) => {
-    const { activePairId, swapMode, spotId, spotName, sourceProductId, pairedProductId, lift, sourceCoordinates, originalPairedCoordinates, swappedPairedCoordinates, suggestedCoordinatesList, mutualSwapList, } = req.body;
-    let planogram = await Planogram_1.default.findOne().sort({ updatedAt: -1 });
-    if (!planogram) {
-        planogram = new Planogram_1.default();
-    }
-    planogram.activePairId = activePairId || "sug-1";
-    if (swapMode)
-        planogram.swapMode = swapMode;
-    if (spotId)
-        planogram.spotId = spotId;
-    if (spotName)
-        planogram.spotName = spotName;
-    planogram.sourceProductId = sourceProductId;
-    planogram.pairedProductId = pairedProductId;
-    planogram.applied = true;
-    planogram.lift = lift || "+82%";
-    if (sourceCoordinates)
-        planogram.sourceCoordinates = sourceCoordinates;
-    if (originalPairedCoordinates)
-        planogram.originalPairedCoordinates = originalPairedCoordinates;
-    if (swappedPairedCoordinates)
-        planogram.swappedPairedCoordinates = swappedPairedCoordinates;
-    if (suggestedCoordinatesList)
-        planogram.suggestedCoordinatesList = suggestedCoordinatesList;
-    await planogram.save();
-
-    // Persist mutual swap coordinates in MongoDB for all participating products
-    if (mutualSwapList && Array.isArray(mutualSwapList) && mutualSwapList.length > 0) {
-        for (const pair of mutualSwapList) {
-            if (pair.suggestedId && pair.targetCoordsForSuggested) {
-                await Product_1.default.findByIdAndUpdate(pair.suggestedId, {
-                    coordinates3D: {
-                        x: pair.targetCoordsForSuggested.x,
-                        y: pair.targetCoordsForSuggested.y,
-                        z: pair.targetCoordsForSuggested.z,
-                        zone: pair.targetCoordsForSuggested.zone || "Swapped Adjacent to Fast Mover",
-                        isRelocated: true,
-                    },
-                });
-            }
-            if (pair.neighborId && pair.targetCoordsForNeighbor) {
-                await Product_1.default.findByIdAndUpdate(pair.neighborId, {
-                    coordinates3D: {
-                        x: pair.targetCoordsForNeighbor.x,
-                        y: pair.targetCoordsForNeighbor.y,
-                        z: pair.targetCoordsForNeighbor.z,
-                        zone: pair.targetCoordsForNeighbor.zone || "Relocated Vacancy Slot",
-                        isRelocated: true,
-                    },
-                });
-            }
-        }
-    } else {
-        // Fallback for single paired product
-        if (pairedProductId && swappedPairedCoordinates) {
-            await Product_1.default.findByIdAndUpdate(pairedProductId, {
-                coordinates3D: {
-                    x: swappedPairedCoordinates.x,
-                    y: swappedPairedCoordinates.y,
-                    z: swappedPairedCoordinates.z,
-                    zone: swappedPairedCoordinates.zone || "Hero Runway A-1 (Swapped)",
-                    isRelocated: true,
-                },
-            });
-        }
-    }
-
-    if (sourceProductId && sourceCoordinates) {
-        await Product_1.default.findByIdAndUpdate(sourceProductId, {
-            coordinates3D: {
-                x: sourceCoordinates.x,
-                y: sourceCoordinates.y,
-                z: sourceCoordinates.z,
-                zone: sourceCoordinates.zone || "Fast Mover Anchor",
-                isRelocated: false,
-            },
-        });
-    }
-
-    try {
-        (0, sockets_1.getIO)().emit("planogram_updated", planogram);
-    }
-    catch { }
-    res.json(planogram);
+    // AI Planogram is a purely local visual preview/simulation.
+    // Database updates and WebSocket broadcasts are strictly reserved for Floor Tasks
+    // so physical ground-level actions and staff attributions are accurately tracked.
+    res.json({
+        success: true,
+        previewOnly: true,
+        message: "AI Planogram is visual simulation only; DB & WebSockets updates reserved for Floor Tasks.",
+    });
 });
 exports.resetPlanogram = (0, express_async_handler_1.default)(async (req, res) => {
-    let planogram = await Planogram_1.default.findOne().sort({ updatedAt: -1 });
-    if (!planogram) {
-        planogram = new Planogram_1.default();
-    }
-    planogram.applied = false;
-    await planogram.save();
-
-    // 1. Mark all active FloorSwap records as reverted in MongoDB
-    try {
-        await FloorSwap_1.default.updateMany(
-            { status: "active" },
-            { $set: { status: "reverted", revertedAt: new Date() } }
-        );
-    } catch (fsErr) {
-        console.error("Failed to update FloorSwap status on reset:", fsErr);
-    }
-
-    // 2. Restore all products' 3D showroom coordinates to baseline cupboard shelves in MongoDB Atlas
-    try {
-        await (0, updateCoordinates_1.resetAllProductsToBaselineCoords)();
-    } catch (coordErr) {
-        console.error("Failed to reset products coordinates on reset:", coordErr);
-    }
-
-    // 3. Broadcast live WebSocket events so all clients (laptop & mobile) reset together
-    try {
-        (0, sockets_1.getIO)().emit("planogram_updated", planogram);
-        (0, sockets_1.getIO)().emit("floor_swap_reverted", {
-            all: true,
-            revertedProductIds: [],
-            remainingActive: 0,
-            staffName: req.user?.name || "Floor Manager",
-            timestamp: new Date().toISOString(),
-        });
-        (0, sockets_1.getIO)().emit("product:updated");
-    }
-    catch (err) {
-        console.error("Socket emit error on resetPlanogram:", err);
-    }
-
-    res.json(planogram);
+    // AI Planogram is a purely local visual preview/simulation.
+    // Resetting physical store layout is strictly handled via Floor Tasks revert endpoint.
+    res.json({
+        success: true,
+        previewOnly: true,
+        message: "Visual preview reset locally; DB & WebSockets updates reserved for Floor Tasks.",
+    });
 });
 exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res) => {
     const {
@@ -366,7 +256,7 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
         activePairId,
         spotIndex,
         remainingActive,
-        staffName: req.user?.name || "Floor Staff",
+        staffName: req.body?.staffName || req.user?.name || "Floor Staff",
         timestamp: new Date().toISOString(),
     };
 
