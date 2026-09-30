@@ -13,16 +13,20 @@ const explainRecommendation = async (source, similar, velocityPerDay) => {
         throw new Error("GROQ_API_KEY not configured");
     }
     const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
+    const isHeroRunway = similar.length === 3;
     const prompt = `You are an expert luxury retail visual merchandising analyst.
 A top fast-selling anchor product "${source.name}" (category: ${source.category}, color: ${source.color}) is selling at ${velocityPerDay.toFixed(2)} units/day.
-To maximize basket size and complete full-outfit cross-sell synergies across store departments, exactly 4 complementary in-stock products are paired:
-${similar.map((p, i) => `${i + 1}. ${p.name} (${p.category}, color: ${p.color})`).join("\n") || "none found"}.
+${
+  isHeroRunway
+    ? `For the premier Hero Runway Mannequin, exactly 3 complementary in-stock products are paired with "${source.name}" to form a complete 4-piece coordinated outfit:
+${similar.map((p, i) => `${i + 1}. ${p.name} (${p.category}, color: ${p.color})`).join("\n")}.
+Together with "${source.name}", these 4 wearable products completely dress the mannequin across all 4 zones: Outerwear, Topwear, Pants/Bottomwear, and Footwear/Shoes (never omitting pants or shoes).`
+    : `For the In-Aisle Cupboard Bay, 4 complementary in-stock products are paired with "${source.name}" across other cupboards:
+${similar.map((p, i) => `${i + 1}. ${p.name} (${p.category}, color: ${p.color})`).join("\n")}.
+These products form 1-to-1 bilateral mutual swaps with the other showroom cupboards (Jackets, Shirts, Jeans, T-Shirts, Shoes), preventing duplicate fixture clutter.`
+}
 
-PHYSICAL MERCHANDISING ARCHITECTURE:
-- For Hero Runway Mannequins: These 4 products complete a coordinated 4-piece fashion ensemble (Outerwear, Topwear, Bottomwear, Footwear) on the central runway.
-- For In-Aisle Cupboard Bays: These 4 products form 1-to-1 bilateral mutual swaps with the other 4 showroom cupboards (Jackets, Shirts, Jeans, T-Shirts, Shoes), preventing duplicate fixture clutter.
-
-In 2 concise, impactful sentences, explain WHY co-locating these exact 4 complementary partner items with "${source.name}" drives immediate cross-department basket conversions for the store manager.`;
+In 2 concise, impactful sentences, explain WHY dressing this complete coordinated arrangement with "${source.name}" drives immediate cross-department basket conversions for the store manager.`;
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         signal: AbortSignal.timeout(3500),

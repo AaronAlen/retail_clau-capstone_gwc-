@@ -57,6 +57,14 @@ interface VelocityRow {
 }
 
 interface Recommendation {
+  id?: string;
+  pairIndex?: number;
+  pairNumber?: number;
+  pairType?: "hero_runway" | "cupboard_bay";
+  stationBadge?: string;
+  stationName?: string;
+  department?: string;
+  lift?: string;
   sourceProduct: Product;
   similarProducts: Product[];
   reason: string;
@@ -555,23 +563,43 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     const mannequinsY = [1.80, 1.90, 1.80];
 
     return [0, 1, 2].map((idx) => {
+      const heroRec = (recommendations || []).find((r, rIdx) => r.pairIndex === idx || (rIdx === idx && idx < 3));
+      const heroItems = heroRec ? [heroRec.sourceProduct, ...(heroRec.similarProducts || [])].filter(Boolean) : [];
+      const recJacket = heroItems.find((p) => (p.category || "").toLowerCase().includes("jacket"));
+      const recTop = heroItems.find((p) => {
+        const c = (p.category || "").toLowerCase();
+        return (c.includes("shirt") || c.includes("tee")) && !c.includes("jacket");
+      });
+      const recPants = heroItems.find((p) => {
+        const c = (p.category || "").toLowerCase();
+        return c.includes("jean") || c.includes("denim") || c.includes("trouser");
+      });
+      const recShoe = heroItems.find((p) => {
+        const c = (p.category || "").toLowerCase();
+        return c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker");
+      });
+
       const sug = suggestions[idx] || suggestions[0];
       const jacket =
+        recJacket ||
         (jackets.length > 0 ? jackets[idx % jackets.length] : null) ||
         sug?.anchor ||
         catalogProducts[0] ||
         defaultFallbackAnchor;
       const tshirt =
+        recTop ||
         (tshirts.length > 0 ? tshirts[idx % tshirts.length] : null) ||
         (shirts.length > 0 ? shirts[idx % shirts.length] : null) ||
         catalogProducts[1] ||
         defaultFallbackAnchor;
       const pants =
+        recPants ||
         (jeans.length > 0 ? jeans[idx % jeans.length] : null) ||
         sug?.partner ||
         catalogProducts[2] ||
         defaultFallbackPartner;
       const shoe =
+        recShoe ||
         (shoes.length > 0 ? shoes[idx % shoes.length] : null) ||
         catalogProducts[3] ||
         defaultFallbackPartner;

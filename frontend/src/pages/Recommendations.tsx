@@ -23,6 +23,16 @@ import {
 import { buildPlanogramCoordPayload, getPopularSpotByIndex } from "../utils/showroomCoordinates";
 import { useToast } from "../context/ToastContext";
 
+const getCategoryWearableRole = (cat: string) => {
+  const c = (cat || "").toLowerCase();
+  if (c.includes("jacket") || c.includes("blazer") || c.includes("coat")) return "🧥 Outerwear";
+  if (c.includes("shirt")) return "👔 Topwear (Shirt)";
+  if (c.includes("t-shirt") || c.includes("tee")) return "👕 Topwear (T-Shirt)";
+  if (c.includes("jean") || c.includes("pant") || c.includes("trouser")) return "👖 Pants (Denim)";
+  if (c.includes("shoe") || c.includes("boot") || c.includes("sneaker") || c.includes("loafer") || c.includes("footwear")) return "👞 Shoes (Footwear)";
+  return cat;
+};
+
 const Recommendations: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -67,7 +77,7 @@ const Recommendations: React.FC = () => {
       );
       showToast(
         isHero
-          ? `✨ Visual Simulation: 4-piece ensemble previewed on Hero Runway Station #${index + 1} (${getPopularSpotByIndex(index).badge})!`
+          ? `✨ Visual Simulation: Complete 4-piece ensemble (Jacket, Top, Pants, Shoes) previewed on Hero Runway Station #${index + 1} (${getPopularSpotByIndex(index).badge})!`
           : `🏬 Visual Simulation: 4 cross-cupboard partners paired adjacent to ${rec.sourceProduct.name} in ${rec.sourceProduct.category} Cupboard!`,
         "success"
       );
@@ -103,7 +113,7 @@ const Recommendations: React.FC = () => {
             </span>
           </div>
           <p className="text-xs text-stone-500 mt-1">
-            Curated 8 store merchandising stations: 3 Premier Hero Runway Outfits + 5 In-Aisle Cupboard Bays (4 products per station)
+            Curated 8 store merchandising stations: 3 Premier Hero Runway Outfits (4 items dressing Outerwear, Top, Pants, Shoes) + 5 In-Aisle Cupboard Bays (4 cross-cupboard swaps)
           </p>
         </div>
 
@@ -255,19 +265,21 @@ const Recommendations: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. Middle Row: Fast-Mover Anchor + 4 Recommended Products */}
+                {/* 2. Middle Row: Fast-Mover Anchor + Coordinated Products */}
                 <div className="flex flex-col xl:flex-row items-stretch xl:items-center gap-4">
                   {/* Left: Source Anchor Fast-Mover */}
-                  <div className="xl:w-72 shrink-0 bg-white p-3 rounded-2xl border border-stone-200 shadow-xs flex items-center gap-3.5">
+                  <div className="xl:w-72 shrink-0 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs flex items-center gap-3.5">
                     <img
                       src={sourceImg}
                       alt={rec.sourceProduct.name}
-                      className="w-16 h-16 rounded-xl object-cover border border-amber-500/40 shrink-0"
+                      className="w-16 h-16 rounded-xl object-cover border-2 border-amber-500/50 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <span className="badge-fast text-[10px] font-black">🔥 Fast Mover Anchor</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-stone-100 text-stone-600">
+                      <div className="flex flex-wrap items-center gap-1.5 mb-1">
+                        <span className="badge-fast text-[10px] font-black">
+                          {isHero ? `🔥 ${getCategoryWearableRole(rec.sourceProduct.category)} Anchor` : "🔥 Fast Mover Anchor"}
+                        </span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-stone-100 text-stone-600">
                           {rec.sourceProduct.category}
                         </span>
                       </div>
@@ -285,13 +297,16 @@ const Recommendations: React.FC = () => {
                   {/* Flow Indicator Arrow */}
                   <div className="hidden xl:flex flex-col items-center justify-center px-1 text-stone-400">
                     <ArrowRight className="w-5 h-5 text-orange-500" />
-                    <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 text-center mt-1">
-                      {isHero ? "Completes Outfit" : "Cross-Cupboard"}
+                    <span className="text-[9px] font-black uppercase tracking-wider text-orange-600 text-center mt-1 max-w-[110px] leading-tight">
+                      {isHero ? "Completes 4-Piece Ensemble" : "Cross-Cupboard Swaps"}
+                    </span>
+                    <span className="text-[8px] font-bold text-stone-400 mt-0.5">
+                      {isHero ? "(4 items total)" : "(4 swaps)"}
                     </span>
                   </div>
 
-                  {/* Right: Exactly 4 Suggested Products */}
-                  <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                  {/* Right: Exactly 3 Suggested Products (Hero Runway = 4 items total) or 4 (Cupboards) */}
+                  <div className={`flex-1 grid gap-2.5 ${isHero ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2 sm:grid-cols-4"}`}>
                     {rec.similarProducts.map((p, pIdx) => {
                       const recImg = getProductImage(p.category, p.color, p.name, p.imageUrl);
                       return (
@@ -307,7 +322,7 @@ const Recommendations: React.FC = () => {
                             />
                             <div className="min-w-0 flex-1">
                               <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-stone-100 text-stone-700 block truncate w-fit">
-                                {isHero ? `Item #${pIdx + 1} (${p.category})` : p.category}
+                                {isHero ? `${getCategoryWearableRole(p.category)}` : `Swap #${pIdx + 1} (${p.category})`}
                               </span>
                               <p className="font-bold text-stone-800 text-[11px] truncate mt-0.5" title={p.name}>
                                 {p.name}
@@ -335,7 +350,7 @@ const Recommendations: React.FC = () => {
                     })}
 
                     {rec.similarProducts.length === 0 && (
-                      <div className="col-span-4 py-4 text-center text-xs text-stone-400 italic bg-white rounded-xl border border-stone-200">
+                      <div className={`${isHero ? "col-span-1 sm:col-span-3" : "col-span-2 sm:col-span-4"} py-4 text-center text-xs text-stone-400 italic bg-white rounded-xl border border-stone-200`}>
                         No in-stock match found.
                       </div>
                     )}

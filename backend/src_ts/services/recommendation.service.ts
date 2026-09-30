@@ -101,6 +101,105 @@ export const getSimilarProducts = async (
   return selectedPairs.slice(0, limit);
 };
 
+export const normalizeCategory = (cat?: string): string => {
+  const c = (cat || "").toLowerCase();
+  if (c.includes("jacket") || c.includes("coat") || c.includes("blazer")) return "Jackets";
+  if (c.includes("t-shirt") || c.includes("tee")) return "T-Shirts";
+  if (c.includes("shirt") || c.includes("oxford") || c.includes("linen")) return "Shirts";
+  if (c.includes("jean") || c.includes("denim") || c.includes("trouser")) return "Jeans";
+  if (c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker")) return "Shoes";
+  return cat || "";
+};
+
+/**
+ * 🌟 Complete 4-Piece Runway Outfit for Hero Mannequins:
+ * A mannequin doll wears exactly 4 pieces:
+ * 1. Outerwear (Jackets)
+ * 2. Topwear (Shirts or T-Shirts)
+ * 3. Bottomwear (Jeans/Pants) - GUARANTEED / NEVER SKIPPED!
+ * 4. Footwear (Shoes) - GUARANTEED / NEVER SKIPPED!
+ *
+ * Given the 1 fast-selling anchor, we select the EXACT 3 remaining missing pieces.
+ * 1 Anchor + 3 Partners = EXACTLY 4 PRODUCTS TOTAL on the mannequin!
+ */
+export const getHeroRunwayOutfit = async (
+  source: IProduct,
+  excludeProductIds: string[] = []
+): Promise<IProduct[]> => {
+  const sourceCat = normalizeCategory(source.category);
+  const excludeSet = new Set<string>([String(source._id), ...excludeProductIds.map(String)]);
+
+  // The 3 missing categories needed to complete the 4-piece outfit:
+  let missingSlots: Array<{ slot: string; categories: string[] }> = [];
+
+  if (sourceCat === "Jackets") {
+    // Source is Outerwear -> Need 1 Topwear, 1 Pants (Jeans), 1 Shoes
+    missingSlots = [
+      { slot: "topwear", categories: ["Shirts", "T-Shirts"] },
+      { slot: "bottomwear", categories: ["Jeans"] },
+      { slot: "footwear", categories: ["Shoes"] },
+    ];
+  } else if (sourceCat === "Shirts" || sourceCat === "T-Shirts") {
+    // Source is Topwear -> Need 1 Outerwear (Jackets), 1 Pants (Jeans), 1 Shoes
+    missingSlots = [
+      { slot: "outerwear", categories: ["Jackets"] },
+      { slot: "bottomwear", categories: ["Jeans"] },
+      { slot: "footwear", categories: ["Shoes"] },
+    ];
+  } else if (sourceCat === "Jeans") {
+    // Source is Pants -> Need 1 Outerwear (Jackets), 1 Topwear, 1 Shoes
+    missingSlots = [
+      { slot: "outerwear", categories: ["Jackets"] },
+      { slot: "topwear", categories: ["Shirts", "T-Shirts"] },
+      { slot: "footwear", categories: ["Shoes"] },
+    ];
+  } else if (sourceCat === "Shoes") {
+    // Source is Shoes -> Need 1 Outerwear (Jackets), 1 Topwear, 1 Pants (Jeans)
+    missingSlots = [
+      { slot: "outerwear", categories: ["Jackets"] },
+      { slot: "topwear", categories: ["Shirts", "T-Shirts"] },
+      { slot: "bottomwear", categories: ["Jeans"] },
+    ];
+  } else {
+    missingSlots = [
+      { slot: "outerwear", categories: ["Jackets"] },
+      { slot: "bottomwear", categories: ["Jeans"] },
+      { slot: "footwear", categories: ["Shoes"] },
+    ];
+  }
+
+  const outfitPartners: IProduct[] = [];
+
+  for (const slot of missingSlots) {
+    const candidateItems = await Product.find({
+      category: { $in: slot.categories },
+      _id: { $nin: Array.from(excludeSet) },
+    });
+
+    if (candidateItems.length > 0) {
+      const scored = candidateItems.map((c) => ({
+        product: c,
+        score: crossCupboardAffinityScore(source, c),
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const chosen = scored[0].product;
+      outfitPartners.push(chosen);
+      excludeSet.add(String(chosen._id));
+    } else {
+      const fallbackItem = await Product.findOne({
+        category: { $in: slot.categories },
+        _id: { $ne: source._id },
+      });
+      if (fallbackItem) {
+        outfitPartners.push(fallbackItem);
+        excludeSet.add(String(fallbackItem._id));
+      }
+    }
+  }
+
+  return outfitPartners; // Exactly 3 complementary pieces!
+};
+
 export const buildRecommendationsForFastMovers = async (
   fastMovers: VelocityResult[],
   useAI: boolean
@@ -127,12 +226,24 @@ export const buildRecommendationsForFastMovers = async (
 
   for (let idx = 0; idx < fastMovers.length; idx++) {
     const fm = fastMovers[idx];
-    // Exactly 4 complementary products matching 4-piece outfit / 4 cross-cupboard synergies
-    const similarProducts = await getSimilarProducts(
-      String(fm.product._id),
-      4,
-      Array.from(globallyAllocatedProductIds)
-    );
+    const isHeroRunway = idx < 3;
+    let similarProducts: IProduct[] = [];
+
+    if (isHeroRunway) {
+      // 🌟 Hero Runway: Exactly 3 items so Anchor (1) + Partners (3) = 4 Wearable Mannequin Pieces!
+      similarProducts = await getHeroRunwayOutfit(
+        fm.product,
+        Array.from(globallyAllocatedProductIds)
+      );
+    } else {
+      // 🏬 Cupboard Bays: 4 cross-cupboard bilateral mutual partners
+      similarProducts = await getSimilarProducts(
+        String(fm.product._id),
+        4,
+        Array.from(globallyAllocatedProductIds)
+      );
+    }
+
     similarProducts.forEach((p) => {
       globallyAllocatedProductIds.add(String(p._id));
     });
@@ -144,11 +255,17 @@ export const buildRecommendationsForFastMovers = async (
       dept: fm.product.category,
     };
 
-    let reason = `${fm.product.name} is selling ${fm.velocityPerDay.toFixed(
-      2
-    )} units/day, well above category benchmark. Positioning 4 complementary items (${similarProducts
-      .map((p) => p.category)
-      .join(", ")}) completes the full outfit and drives basket size lift.`;
+    let reason = isHeroRunway
+      ? `${fm.product.name} is selling ${fm.velocityPerDay.toFixed(
+          2
+        )} units/day. Co-locating 3 complementary fashion pieces (${similarProducts
+          .map((p) => p.category)
+          .join(", ")}) completes the 4-piece mannequin ensemble (Outerwear, Topwear, Pants, Footwear) on the central runway to drive maximum cross-sell basket lift.`
+      : `${fm.product.name} is selling ${fm.velocityPerDay.toFixed(
+          2
+        )} units/day, well above category benchmark. Positioning 4 complementary items (${similarProducts
+          .map((p) => p.category)
+          .join(", ")}) completes the full outfit and drives basket size lift.`;
 
     if (useAI) {
       try {
