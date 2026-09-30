@@ -2795,12 +2795,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       // Camera lerp
       currentLookAt.lerp(targetLookAt, 0.08);
       currentRadius += (targetRadius - currentRadius) * 0.12;
-      currentTheta += (targetTheta - currentTheta) * 0.12;
       currentPhi += (targetPhi - currentPhi) * 0.12;
 
-      // Auto rotation
+      // Auto rotation (Smooth, slow luxury showroom orbit at ~20°/sec)
       if (autoRotateRef.current && !isDragging) {
-        targetTheta += delta * 0.04;
+        const orbitSpeed = delta * 0.35;
+        targetTheta += orbitSpeed;
+        currentTheta += orbitSpeed;
+      } else {
+        currentTheta += (targetTheta - currentTheta) * 0.12;
       }
 
       updateCameraPosition();
@@ -4702,7 +4705,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           </div>
         </div>
 
-        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING */}
+        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING (Dead-Center Aligned) */}
         <div
           ref={searchContainerRef}
           onMouseEnter={() => {
@@ -4711,7 +4714,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="flex relative pointer-events-auto flex-1 min-w-[70px] max-w-[150px] sm:max-w-xs md:max-w-sm z-30"
+          className="absolute left-1/2 -translate-x-1/2 pointer-events-auto w-[42vw] min-w-[120px] max-w-[240px] sm:max-w-xs md:max-w-sm z-30"
         >
           <div className="relative flex items-center">
             <Search className="w-3.5 h-3.5 text-amber-400 absolute left-2.5 sm:left-3 pointer-events-none" />
@@ -4789,10 +4792,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             <ShowroomClock />
           </div>
 
-          {/* Toggle Sidebar Overlay Button (Desktop) */}
+          {/* Toggle Sidebar Overlay Button (Desktop Only) */}
           <button
             onClick={() => setIsOverlayVisible((prev) => !prev)}
-            className={`hidden md:flex px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all border shrink-0 ${
+            className={`hidden lg:flex px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all border shrink-0 ${
               isOverlayVisible
                 ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 border-amber-400 shadow-lg shadow-orange-500/30 font-black"
                 : "glass-panel text-amber-200 border-amber-500/40 hover:text-white"
@@ -4980,17 +4983,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               <span>3D Land</span>
             </>
           )}
-        </button>
-
-        {/* Fullscreen Button for Mobile */}
-        <button
-          onClick={toggleFullScreen}
-          className={`p-1.5 rounded-xl text-slate-200 hover:text-white border border-amber-500/30 transition-all shadow-md cursor-pointer shrink-0 ${
-            isFullScreen ? "bg-amber-500 text-stone-950 border-amber-400" : "bg-stone-900/80"
-          }`}
-          title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
-        >
-          {isFullScreen ? <Minimize2 className="w-3 h-3" /> : <Maximize2 className="w-3 h-3 text-amber-300" />}
         </button>
       </div>
 
