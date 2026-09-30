@@ -94,16 +94,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onOpenCopilot, isOpen = false, onClos
           )}
         </nav>
       </div>
-
-      {user && (
-        <div className="px-5 py-4 border-t border-orange-400/30 text-xs text-orange-100 bg-black/15">
-          Signed in as <span className="font-bold text-white">{user.name}</span>
-          <div className="uppercase tracking-wider text-[10px] text-amber-200 font-extrabold mt-0.5 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-300 animate-pulse" />
-            {user.role}
-          </div>
-        </div>
-      )}
     </div>
   );
 

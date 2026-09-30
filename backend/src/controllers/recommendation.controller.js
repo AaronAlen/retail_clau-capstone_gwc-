@@ -16,8 +16,50 @@ exports.getRecommendations = (0, express_async_handler_1.default)(async (req, re
     try {
         const useAI = req.query.ai === "true";
         const results = await (0, velocity_service_1.computeVelocity)(7);
-        const fastMovers = results.filter((r) => r.isFastMover).slice(0, 10);
-        const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(fastMovers, useAI);
+        
+        // 🌟 Balance fast-movers across all 5 store departments (Jackets, Shirts, Jeans, T-Shirts, Shoes)
+        const normalizeCategory = (cat) => {
+            const c = (cat || "").toLowerCase();
+            if (c.includes("jacket") || c.includes("coat") || c.includes("blazer")) return "Jackets";
+            if (c.includes("t-shirt") || c.includes("tee")) return "T-Shirts";
+            if (c.includes("shirt") || c.includes("oxford") || c.includes("linen")) return "Shirts";
+            if (c.includes("jean") || c.includes("denim") || c.includes("trouser")) return "Jeans";
+            if (c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker")) return "Shoes";
+            return cat;
+        };
+
+        const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
+        const fastMovers = results.filter((r) => r.isFastMover);
+        const fastMoversByDept = new Map();
+        storeDepartments.forEach((d) => fastMoversByDept.set(d, []));
+        fastMovers.forEach((fm) => {
+            const norm = normalizeCategory(fm.product?.category);
+            if (fastMoversByDept.has(norm)) fastMoversByDept.get(norm).push(fm);
+        });
+
+        // Round 1: Top fast mover from each distinct department/cupboard
+        const balancedFastMovers = [];
+        storeDepartments.forEach((dept) => {
+            const items = fastMoversByDept.get(dept) || [];
+            if (items.length > 0) {
+                balancedFastMovers.push(items[0]);
+            } else {
+                const deptResults = results.filter((r) => normalizeCategory(r.product?.category) === dept);
+                deptResults.sort((a, b) => b.velocityPerDay - a.velocityPerDay);
+                if (deptResults[0]) balancedFastMovers.push(deptResults[0]);
+            }
+        });
+
+        // Round 2: Add any remaining fast movers up to 10
+        const addedIds = new Set(balancedFastMovers.map((b) => String(b.product._id)));
+        fastMovers.forEach((fm) => {
+            if (!addedIds.has(String(fm.product._id)) && balancedFastMovers.length < 10) {
+                balancedFastMovers.push(fm);
+                addedIds.add(String(fm.product._id));
+            }
+        });
+
+        const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(balancedFastMovers, useAI);
         res.json(recommendations);
     } catch (err) {
         console.error("Error generating recommendations, falling back:", err);

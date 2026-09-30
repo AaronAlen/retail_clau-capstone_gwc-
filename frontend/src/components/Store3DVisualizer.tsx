@@ -242,6 +242,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const focusCameraOnPosRef = useRef<((pos: THREE.Vector3) => void) | null>(null);
   const scopePointerGroupRef = useRef<THREE.Group | null>(null);
+  const scopedTargetProductIdRef = useRef<string | null>(null);
+  const updateScopeSignRef = useRef<((title: string, subtitle?: string) => void) | null>(null);
   const productGroupsMapRef = useRef<Map<string, { group: THREE.Group; originalPos: THREE.Vector3; product: Product }>>(new Map());
 
   // Close search dropdown on click outside
@@ -314,7 +316,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     salesVelocity: 12.0,
   }), []);
 
-  // Dynamic AI Planogram Suggestions (Cross-Cupboard Complementary Pairings)
+  // Dynamic AI Planogram Suggestions (Balanced across all 5 Showroom Cupboards / Departments)
   const suggestions = React.useMemo(() => {
     const fbAnchor = jackets[0] || catalogProducts[0] || defaultFallbackAnchor;
     const fbPartner = jeans[0] || catalogProducts[1] || defaultFallbackPartner;
@@ -323,104 +325,129 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       {
         id: "sug-1",
         title: "Executive Outerwear + Contrast Denim Ensemble",
-        dept: "Executive Outerwear",
+        dept: "Savile Row Outerwear",
+        category: "Jackets",
         lift: "+84%",
         anchor: jackets.find((j) => j.color === "Beige" && j.name.includes("Cashmere")) || jackets[1] || jackets[0] || fbAnchor,
         partner: jeans.find((j) => j.color === "Black" && j.name.includes("Tailored Slim")) || jeans[1] || jeans[0] || fbPartner,
         similarProducts: [
           jeans.find((j) => j.color === "Black" && j.name.includes("Tailored Slim")) || jeans[1] || jeans[0] || fbPartner,
-          shirts.find((s) => s.color === "White" && s.name.includes("Royal Oxford")) || shirts[0] || fbAnchor,
-          tshirts.find((t) => t.color === "Black" && t.name.includes("Mercerized")) || tshirts[1] || tshirts[0] || fbAnchor,
-          shoes.find((s) => s.color === "Black" && s.name.includes("Calfskin")) || shoes[0] || fbPartner,
+          shirts.find((s) => s.name.includes("Oxford") || s.color === "White") || shirts[0] || fbAnchor,
+          tshirts.find((t) => t.color === "White" || t.name.includes("Crewneck")) || tshirts[0] || fbAnchor,
+          shoes.find((s) => s.name.includes("Monk") || s.name.includes("Derby") || s.name.includes("Loafer")) || shoes[0] || fbPartner,
         ].filter(Boolean) as Product[],
-        rationale: "High-contrast full-outfit pairing (Outerwear + Denim + Oxford Shirt + Oxford Shoe) lifts basket size by 84%.",
+        rationale: "High-contrast full-outfit pairing (Outerwear + Denim + Oxford + Shoes) lifts basket size by 84%.",
       },
       {
         id: "sug-2",
-        title: "Streetwear Duo: Organic Tee + Layered Overshirt",
-        dept: "Denim & Streetwear",
+        title: "Royal Oxford Shirt + Handcrafted Loafers",
+        dept: "Royal Oxford Wardrobe",
+        category: "Shirts",
         lift: "+76%",
-        anchor: tshirts.find((t) => t.color === "White" && t.name.includes("Supima")) || tshirts[0] || fbAnchor,
-        partner: jeans.find((j) => j.color === "Navy" && j.name.includes("Selvedge")) || jeans[0] || fbPartner,
+        anchor: shirts.find((s) => s.name.includes("Oxford") || s.color === "White") || shirts[0] || fbAnchor,
+        partner: shoes.find((s) => s.name.includes("Loafer") || s.name.includes("Oxford")) || shoes[0] || fbPartner,
         similarProducts: [
-          jeans.find((j) => j.color === "Navy" && j.name.includes("Selvedge")) || jeans[0] || fbPartner,
-          shirts.find((s) => s.color === "Navy" && s.name.includes("Poplin")) || shirts[1] || fbPartner,
-          jackets.find((j) => j.color === "Navy" && j.name.includes("Peacoat")) || jackets[7] || jackets[0] || fbAnchor,
-          shoes.find((s) => s.color === "White" && s.name.includes("Court")) || shoes[4] || fbPartner,
+          shoes.find((s) => s.name.includes("Loafer") || s.name.includes("Oxford")) || shoes[0] || fbPartner,
+          jeans.find((j) => j.color === "Navy" || j.name.includes("Selvedge")) || jeans[0] || fbPartner,
+          jackets.find((j) => j.name.includes("Blazer") || j.color === "Navy") || jackets[0] || fbAnchor,
+          tshirts.find((t) => t.name.includes("Crewneck") || t.color === "White") || tshirts[0] || fbAnchor,
         ].filter(Boolean) as Product[],
-        rationale: "Customers buying basic tees readily add open-collar overshirts, navy raw denim, and clean white court sneakers.",
+        rationale: "Positioning handcrafted footwear and selvedge denim beside luxury oxford dress shirts converts complete formal wardrobes.",
       },
       {
         id: "sug-3",
-        title: "Formal Suiting + Handcrafted Italian Footwear",
-        dept: "Executive Suits",
+        title: "Premium Selvedge Denim + Graphic Tee",
+        dept: "Premium Denim Studio",
+        category: "Jeans",
         lift: "+72%",
-        anchor: jackets.find((j) => j.color === "Navy" && j.name.includes("Double-Breasted")) || jackets[0] || fbAnchor,
-        partner: shoes.find((s) => s.color === "Navy" && s.name.includes("Penny Loafers")) || shoes[1] || fbPartner,
+        anchor: jeans.find((j) => j.color === "Navy" && j.name.includes("Selvedge")) || jeans[0] || fbPartner,
+        partner: tshirts.find((t) => t.name.includes("Crewneck") || t.color === "White") || tshirts[0] || fbAnchor,
         similarProducts: [
-          shoes.find((s) => s.color === "Navy" && s.name.includes("Penny Loafers")) || shoes[1] || fbPartner,
-          shirts.find((s) => s.color === "Beige" && s.name.includes("Linen")) || shirts[2] || fbPartner,
-          jeans.find((j) => j.color === "Charcoal" && j.name.includes("Vintage Faded")) || jeans[4] || fbPartner,
-          tshirts.find((t) => t.color === "Navy" && t.name.includes("Typography")) || tshirts[2] || fbAnchor,
+          tshirts.find((t) => t.name.includes("Crewneck") || t.color === "White") || tshirts[0] || fbAnchor,
+          jackets.find((j) => j.name.includes("Bomber") || j.name.includes("Leather")) || jackets[1] || jackets[0] || fbAnchor,
+          shoes.find((s) => s.name.includes("Sneaker") || s.name.includes("Derby")) || shoes[1] || shoes[0] || fbPartner,
+          shirts.find((s) => s.name.includes("Linen") || s.color === "Blue") || shirts[1] || shirts[0] || fbAnchor,
         ].filter(Boolean) as Product[],
-        rationale: "Positioning handcrafted navy suede footwear directly with navy suits and neutral linen shirts drives complete formal outfit conversion.",
+        rationale: "Customers buying premium raw selvedge denim eagerly add clean heavyweight cotton crewneck tees and bomber jackets.",
       },
       {
         id: "sug-4",
-        title: "Contemporary Casual: Earthy Tee + Tailored Chino",
-        dept: "Contemporary Casual",
+        title: "Streetwear Studio Tee + Layered Jacket",
+        dept: "Streetwear Studio",
+        category: "T-Shirts",
         lift: "+68%",
-        anchor: jeans.find((j) => j.color === "Olive" && j.name.includes("Utility")) || jeans[5] || fbPartner,
-        partner: shirts.find((s) => s.color === "Olive" && s.name.includes("Twill")) || shirts[4] || fbPartner,
+        anchor: tshirts.find((t) => t.color === "Charcoal" || t.name.includes("Pigment")) || tshirts[1] || fbAnchor,
+        partner: jackets.find((j) => j.name.includes("Peacoat") || j.name.includes("Bomber")) || jackets[2] || fbAnchor,
         similarProducts: [
-          shirts.find((s) => s.color === "Olive" && s.name.includes("Twill")) || shirts[4] || fbPartner,
-          tshirts.find((t) => t.color === "Olive" && t.name.includes("Earth Wash")) || tshirts[4] || fbAnchor,
-          shoes.find((s) => s.color === "Olive" && s.name.includes("Chukka")) || shoes[5] || fbPartner,
-          jackets.find((j) => j.color === "Olive" && j.name.includes("Safari")) || jackets[5] || fbAnchor,
+          jackets.find((j) => j.name.includes("Peacoat") || j.name.includes("Bomber")) || jackets[2] || fbAnchor,
+          jeans.find((j) => j.color === "Black" || j.name.includes("Slim")) || jeans[2] || jeans[0] || fbPartner,
+          shoes.find((s) => s.name.includes("Sneaker") || s.name.includes("Chelsea")) || shoes[2] || shoes[0] || fbPartner,
+          shirts.find((s) => s.color === "Olive" || s.name.includes("Twill")) || shirts[2] || shirts[0] || fbAnchor,
         ].filter(Boolean) as Product[],
-        rationale: "Matching earth-tone utility trousers with neutral twill shirts and suede chukkas lifts impulse multi-item checkout by 68%.",
+        rationale: "Pairing street-ready relaxed tees with outerwear bombers and slim denim lifts casual multi-category conversions by 68%.",
       },
       {
         id: "sug-5",
-        title: "Evening Monochromatic: Overcoat + Chelsea Boot",
-        dept: "Luxury Showcase",
+        title: "Luxury Footwear Vitrine + Tailored Chino",
+        dept: "Luxury Footwear Lounge",
+        category: "Shoes",
         lift: "+64%",
-        anchor: jackets.find((j) => j.color === "Black" && j.name.includes("Tuxedo")) || jackets[4] || fbAnchor,
-        partner: shoes.find((s) => s.color === "Maroon" && s.name.includes("Chelsea")) || shoes[3] || fbPartner,
+        anchor: shoes.find((s) => s.name.includes("Monk") || s.name.includes("Derby")) || shoes[1] || fbPartner,
+        partner: shirts.find((s) => s.color === "Olive" || s.name.includes("Twill")) || shirts[2] || fbPartner,
         similarProducts: [
-          shoes.find((s) => s.color === "Maroon" && s.name.includes("Chelsea")) || shoes[3] || fbPartner,
-          shirts.find((s) => s.color === "Black" && s.name.includes("Concealed")) || shirts[11] || fbPartner,
-          jeans.find((j) => j.color === "Black" && j.name.includes("Midnight")) || jeans[6] || fbPartner,
-          tshirts.find((t) => t.color === "Charcoal" && t.name.includes("Pigment")) || tshirts[6] || fbAnchor,
+          shirts.find((s) => s.color === "Olive" || s.name.includes("Twill")) || shirts[2] || fbPartner,
+          jeans.find((j) => j.name.includes("Chino") || j.name.includes("Slim")) || jeans[0] || fbPartner,
+          jackets.find((j) => j.name.includes("Cashmere") || j.name.includes("Overcoat")) || jackets[0] || fbAnchor,
+          tshirts.find((t) => t.color === "Charcoal" || t.name.includes("Pigment")) || tshirts[1] || tshirts[0] || fbAnchor,
         ].filter(Boolean) as Product[],
-        rationale: "Co-locating sleek all-black luxury evening suiting with burgundy Chelsea boots and dark denim creates a complete evening package.",
+        rationale: "Co-locating hand-burnished luxury footwear with complementary tailored shirts and cashmere outerwear completes formal styling.",
       },
     ];
 
-    const dynamicPairs = (recommendations && recommendations.length > 0)
-      ? recommendations.map((rec, idx) => ({
-          id: `sug-${idx + 1}`,
-          title: `${rec.sourceProduct?.name || "VIP Product"} + ${rec.similarProducts[0]?.name || "Cross-Sell Partner"}`,
-          dept: rec.sourceProduct?.category || "Showcase",
-          lift: idx === 0 ? "+84%" : idx === 1 ? "+76%" : idx === 2 ? "+72%" : idx === 3 ? "+68%" : "+64%",
-          anchor: rec.sourceProduct || fbAnchor,
-          partner: rec.similarProducts[0] || jeans[idx % (jeans.length || 1)] || jackets[0] || fbPartner,
-          similarProducts: rec.similarProducts || [],
-          rationale: rec.reason || "Cross-department attribute pairing recommended by velocity engine.",
-        }))
-      : [];
+    const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
+    const normalizeCat = (cat?: string) => {
+      const c = (cat || "").toLowerCase();
+      if (c.includes("jacket") || c.includes("coat") || c.includes("blazer")) return "Jackets";
+      if (c.includes("t-shirt") || c.includes("tee")) return "T-Shirts";
+      if (c.includes("shirt") || c.includes("oxford") || c.includes("linen")) return "Shirts";
+      if (c.includes("jean") || c.includes("denim") || c.includes("trouser")) return "Jeans";
+      if (c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker")) return "Shoes";
+      return "General";
+    };
 
-    const result = [...dynamicPairs];
-    for (let i = result.length; i < 5; i++) {
-      result.push(curatedDefaultPairs[i]);
-    }
-    return result.slice(0, 5);
+    const lifts = ["+84%", "+76%", "+72%", "+68%", "+64%"];
+    const results = storeDepartments.map((dept, idx) => {
+      const matchingRec = (recommendations || []).find(
+        (r) => normalizeCat(r.sourceProduct?.category) === dept
+      );
+      if (matchingRec && matchingRec.sourceProduct) {
+        const topPartner = matchingRec.similarProducts?.[0] || curatedDefaultPairs[idx].partner;
+        const validSimilar = (matchingRec.similarProducts && matchingRec.similarProducts.length > 0)
+          ? matchingRec.similarProducts
+          : curatedDefaultPairs[idx].similarProducts;
+        return {
+          id: `sug-${idx + 1}`,
+          title: `${matchingRec.sourceProduct.name} + ${topPartner?.name || "Cross-Sell Partner"}`,
+          dept: curatedDefaultPairs[idx].dept,
+          category: dept,
+          lift: lifts[idx],
+          anchor: matchingRec.sourceProduct,
+          partner: topPartner,
+          similarProducts: validSimilar,
+          rationale: matchingRec.reason || curatedDefaultPairs[idx].rationale,
+        };
+      }
+      return curatedDefaultPairs[idx];
+    });
+
+    return results;
   }, [recommendations, jackets, jeans, shirts, tshirts, shoes, catalogProducts, defaultFallbackAnchor, defaultFallbackPartner]);
 
   const activeSuggestion = suggestions[selectedSuggestionIdx] || suggestions[0] || {
     id: "sug-fallback",
     title: "Executive Outerwear + Contrast Denim",
-    dept: "Executive Outerwear",
+    dept: "Savile Row Outerwear",
+    category: "Jackets",
     lift: "+84%",
     anchor: defaultFallbackAnchor,
     partner: defaultFallbackPartner,
@@ -450,20 +477,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     return shoes;
   }, [fastMoverProduct, jackets, shirts, jeans, tshirts, shoes]);
 
-  // Compute 1:1 Mutual Swap Pairs for ALL suggestions so animations work across all pairs simultaneously
+  // Compute 1:1 Mutual Swap Pairs for ALL suggestions so animations work cleanly without cupboard crowding
   const allCupboardSwapPairs = React.useMemo(() => {
     const colors = [0xc084fc, 0x38bdf8, 0xf43f5e, 0x10b981, 0xfbbf24];
     const colorHexes = ["#c084fc", "#38bdf8", "#f43f5e", "#10b981", "#fbbf24"];
 
-    return suggestions.map((sug) => {
+    // Global tracking to prevent collision or repeated swapping on the exact same product/slot across suggestions
+    const globallyUsedNeighborIds = new Set<string>();
+
+    return suggestions.map((sug, sugIdx) => {
       const anchor = sug.anchor || defaultFallbackAnchor;
-      const partner = sug.partner || defaultFallbackPartner;
-      const partners =
-        sug.similarProducts && sug.similarProducts.length > 0
-          ? sug.similarProducts
-          : partner
-          ? [partner]
-          : [];
+      const partners: Product[] = (sug.similarProducts && sug.similarProducts.length > 0)
+        ? sug.similarProducts
+        : (sug.partner ? [sug.partner] : [defaultFallbackPartner]);
 
       const cat = (anchor.category || "").toLowerCase();
       let cupboardProds = shoes;
@@ -472,8 +498,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       else if (cat.includes("jean") || cat.includes("denim")) cupboardProds = jeans;
       else if (cat.includes("t-shirt") || cat.includes("tee")) cupboardProds = tshirts;
 
-      const suggestedIds = new Set(partners.map((p) => p._id));
-      const availNeighbors = cupboardProds.filter((p) => p._id !== anchor._id && !suggestedIds.has(p._id));
+      // Available neighbors inside the anchor's cupboard (must not be anchor, must not be one of the partners, must not be previously claimed)
+      const partnerIds = new Set(partners.map((p) => p._id));
+      const availNeighbors = cupboardProds.filter(
+        (p) => p._id !== anchor._id && !partnerIds.has(p._id) && !globallyUsedNeighborIds.has(p._id)
+      );
+
+      // Slower-moving neighbor or nearest slot to anchor in this cupboard
       const fSku = parseInt((anchor.sku || "").replace(/\D/g, ""), 10) || 0;
       availNeighbors.sort((a, b) => {
         const aSku = parseInt((a.sku || "").replace(/\D/g, ""), 10) || 0;
@@ -481,32 +512,23 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         return Math.abs(aSku - fSku) - Math.abs(bSku - fSku);
       });
 
-      const usedNeighborIds = new Set<string>();
-      const pairs: Array<{
-        suggested: Product;
-        neighbor: Product;
-        index: number;
-        colorHex: number;
-        colorCss: string;
-      }> = [];
-
-      partners.forEach((suggested) => {
-        let neighbor = availNeighbors.find((n) => n._id !== suggested._id && !usedNeighborIds.has(n._id));
+      // 🎯 Dedicated 1-to-1 mutual bilateral swap between Anchor Cupboard and each Partner Cupboard
+      return partners.map((suggested, pIdx) => {
+        let neighbor = availNeighbors[pIdx];
         if (!neighbor) {
-          neighbor = cupboardProds.find((p) => p._id !== suggested._id && p._id !== anchor._id && !usedNeighborIds.has(p._id));
+          neighbor = cupboardProds.find((p) => p._id !== anchor._id && p._id !== suggested._id) || cupboardProds[0];
         }
         if (neighbor) {
-          usedNeighborIds.add(neighbor._id);
-          pairs.push({
-            suggested,
-            neighbor,
-            index: pairs.length,
-            colorHex: colors[pairs.length % colors.length],
-            colorCss: colorHexes[pairs.length % colorHexes.length],
-          });
+          globallyUsedNeighborIds.add(neighbor._id);
         }
+        return {
+          suggested,
+          neighbor: neighbor || suggested,
+          index: pIdx,
+          colorHex: colors[(sugIdx + pIdx) % colors.length],
+          colorCss: colorHexes[(sugIdx + pIdx) % colorHexes.length],
+        };
       });
-      return pairs;
     });
   }, [suggestions, defaultFallbackAnchor, defaultFallbackPartner, jackets, shirts, jeans, tshirts, shoes]);
 
@@ -620,6 +642,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       if (scopePointerGroupRef.current) {
         scopePointerGroupRef.current.position.copy(pGroup.group.position);
         scopePointerGroupRef.current.visible = true;
+        scopedTargetProductIdRef.current = prod._id;
+        updateScopeSignRef.current?.("🎯 SEARCH TARGET", prod.name);
       }
     }
   };
@@ -628,7 +652,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     setSearchQuery("");
     setSearchedProduct(null);
     setIsSearchOpen(false);
-    if (scopePointerGroupRef.current) {
+    if (fastMoverProduct) {
+      const pGroup = productGroupsMapRef.current.get(fastMoverProduct._id);
+      const loc = pGroup?.group.position || getProductShelfLocation(fastMoverProduct);
+      if (scopePointerGroupRef.current && loc) {
+        scopePointerGroupRef.current.position.set(loc.x, loc.y, loc.z);
+        scopePointerGroupRef.current.visible = true;
+        scopedTargetProductIdRef.current = fastMoverProduct._id;
+        updateScopeSignRef.current?.("★ FAST-SELLING PRODUCT", fastMoverProduct.name);
+      }
+    } else if (scopePointerGroupRef.current) {
       scopePointerGroupRef.current.visible = false;
     }
   };
@@ -637,6 +670,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const recItemName = pairedProduct?.name || "Black Tailored Denim";
   const anchorShelfLoc = getProductShelfLocation(fastMoverProduct);
   const adjacentCupboardLoc = getCupboardAdjacentCoords(fastMoverProduct);
+
+  // 🎯 Highlight Active Fast-Selling Product with 3D Accuracy Reticle (WITHOUT CAMERA ZOOM)
+  useEffect(() => {
+    if (!fastMoverProduct) return;
+    const pGroup = productGroupsMapRef.current.get(fastMoverProduct._id);
+    const loc = pGroup?.group.position || getProductShelfLocation(fastMoverProduct);
+    if (scopePointerGroupRef.current && loc) {
+      scopePointerGroupRef.current.position.set(loc.x, loc.y, loc.z);
+      scopePointerGroupRef.current.visible = true;
+      scopedTargetProductIdRef.current = fastMoverProduct._id;
+      updateScopeSignRef.current?.("★ FAST-SELLING PRODUCT", fastMoverProduct.name);
+    }
+  }, [selectedSuggestionIdx, fastMoverProduct, swapMode]);
 
   // Load Persisted Planogram State & Floor Swaps from MongoDB
   useEffect(() => {
@@ -927,6 +973,23 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   };
 
   // Apply Planogram Action (Local Visual Simulation only - DB & WebSockets are strictly Floor Tasks)
+  // Helper to get active product IDs for the currently selected suggestion pair (single pair animation)
+  const getSelectedAppliedProductIds = (): string[] => {
+    if (swapMode === "hero_showcase") {
+      const selectedHero = heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0];
+      if (!selectedHero) return [];
+      return [
+        selectedHero.outfit.jacket._id,
+        selectedHero.outfit.tshirt._id,
+        selectedHero.outfit.pants._id,
+        selectedHero.outfit.shoes._id,
+      ];
+    } else {
+      if (!swapPairs.length) return [];
+      return swapPairs.flatMap((p) => [p.suggested._id, p.neighbor._id]);
+    }
+  };
+
   const handleApplyPlanogram = async () => {
     if (!fastMoverProduct || !pairedProduct) return;
     setActionLoading(true);
@@ -935,22 +998,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       const selectedHero = heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0];
       planogramAppliedRef.current = true;
       setPlanogramApplied(true);
-      const appliedProdIds =
-        swapMode === "hero_showcase"
-          ? [
-              selectedHero.outfit.jacket._id,
-              selectedHero.outfit.tshirt._id,
-              selectedHero.outfit.pants._id,
-              selectedHero.outfit.shoes._id,
-            ]
-          : swapPairs.map((p) => p.suggested._id);
+      const appliedProdIds = getSelectedAppliedProductIds();
       triggerFlightAnimationRef.current?.(true, appliedProdIds);
       // NOTE: User requested AI Planogram to be purely local visual simulation (no DB update, no WebSockets).
       // Only Floor Tasks will persist to MongoDB and broadcast via WebSockets.
       showToast(
         swapMode === "hero_showcase"
           ? `✨ Visual Simulation: ${selectedHero.badge} Outfit promoted to Runway Mannequin #${selectedSuggestionIdx + 1}! (Floor Tasks-ல் சேமித்தால் மட்டுமே DB & WebSockets-ல் sync ஆகும்)`
-          : `✨ Visual Simulation: ${swapPairs.length} product pairs flying across cupboards! (Floor Tasks-ல் சேமித்தால் மட்டுமே DB & WebSockets-ல் sync ஆகும்)`,
+          : `✨ Visual Simulation: Product pair flying across cupboards! (Floor Tasks-ல் சேமித்தால் மட்டுமே DB & WebSockets-ல் sync ஆகும்)`,
         "success"
       );
     } catch {
@@ -966,7 +1021,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     try {
       planogramAppliedRef.current = false;
       setPlanogramApplied(false);
-      triggerFlightAnimationRef.current?.(false);
+      const appliedProdIds = getSelectedAppliedProductIds();
+      triggerFlightAnimationRef.current?.(false, appliedProdIds);
       // NOTE: User requested AI Planogram to be purely local visual simulation.
       // Floor Tasks records are preserved and only managed via Floor Tasks tab.
       showToast("🔄 Showroom visual simulation reset locally to baseline shelves.", "info");
@@ -977,10 +1033,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     }
   };
 
-  // Replay Swap Animation
+  // Replay Swap Animation (Single selected pair only)
   const handleReplaySwap = () => {
     setIsSwapAnimating(true);
-    triggerFlightAnimationRef.current?.(true);
+    const appliedProdIds = getSelectedAppliedProductIds();
+    triggerFlightAnimationRef.current?.(true, appliedProdIds);
   };
 
   // ⚡ Floor Staff Real-World Swap Execution Handler
@@ -2223,16 +2280,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     scopeCanvas.width = 384;
     scopeCanvas.height = 96;
     const scCtx = scopeCanvas.getContext("2d")!;
-    scCtx.fillStyle = "rgba(6, 182, 212, 0.95)";
-    scCtx.fillRect(0, 0, 384, 96);
-    scCtx.strokeStyle = "#ffffff";
-    scCtx.lineWidth = 4;
-    scCtx.strokeRect(3, 3, 378, 90);
-    scCtx.fillStyle = "#022c22";
-    scCtx.font = "bold 26px sans-serif";
-    scCtx.textAlign = "center";
-    scCtx.fillText("🎯 SCOPE TARGET LOCKED", 192, 58);
-
     const scopeTex = new THREE.CanvasTexture(scopeCanvas);
     const scopeSign = new THREE.Mesh(
       new THREE.PlaneGeometry(1.4, 0.35),
@@ -2240,6 +2287,31 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     );
     scopeSign.position.y = 1.25;
     scopeGroup.add(scopeSign);
+
+    const updateScopeSign = (title: string, subtitle?: string) => {
+      scCtx.clearRect(0, 0, 384, 96);
+      scCtx.fillStyle = "rgba(14, 165, 233, 0.95)";
+      scCtx.fillRect(0, 0, 384, 96);
+      scCtx.strokeStyle = "#ffffff";
+      scCtx.lineWidth = 4;
+      scCtx.strokeRect(3, 3, 378, 90);
+      scCtx.fillStyle = "#ffffff";
+      scCtx.textAlign = "center";
+      if (subtitle) {
+        scCtx.font = "bold 20px sans-serif";
+        scCtx.fillText(title, 192, 38);
+        scCtx.font = "bold 18px sans-serif";
+        scCtx.fillStyle = "#fef08a";
+        const trimmed = subtitle.length > 24 ? subtitle.slice(0, 22) + "..." : subtitle;
+        scCtx.fillText(trimmed, 192, 70);
+      } else {
+        scCtx.font = "bold 22px sans-serif";
+        scCtx.fillText(title, 192, 56);
+      }
+      scopeTex.needsUpdate = true;
+    };
+    updateScopeSignRef.current = updateScopeSign;
+    updateScopeSign("🎯 SCOPE TARGET LOCKED");
 
     scene.add(scopeGroup);
 
@@ -2282,6 +2354,22 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       }
       animatedGuidePulses.length = 0;
       swapBeaconGroups.length = 0;
+
+      // 🎯 Synchronize Fast Mover Aura and Accuracy Reticle onto this suggestion's anchor product (WITHOUT CAMERA ZOOM)
+      const curSug = suggestions[sIdxSelected] || suggestions[0];
+      const curAnchor = curSug?.anchor || defaultFallbackAnchor;
+      if (curAnchor) {
+        const curAnchorLoc = getProductShelfLocation(curAnchor);
+        anchorAura.position.set(curAnchorLoc.x, 0.05, curAnchorLoc.z);
+        const pGroup = productGroupsMap.get(curAnchor._id);
+        const targetPos = pGroup?.group.position || curAnchorLoc;
+        if (scopeGroup && targetPos) {
+          scopeGroup.position.set(targetPos.x, targetPos.y, targetPos.z);
+          scopeGroup.visible = true;
+          scopedTargetProductIdRef.current = curAnchor._id;
+          updateScopeSign("★ FAST-SELLING PRODUCT", curAnchor.name);
+        }
+      }
 
       type RouteItem = {
         suggested: Product;
@@ -2432,9 +2520,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         allFlattenedCupboardPairs.forEach((pair) => {
           const itemS = productGroupsMap.get(pair.suggested._id);
           const itemN = productGroupsMap.get(pair.neighbor._id);
+          const isForSelectedPlanogram =
+            Boolean(planogramAppliedRef.current) &&
+            swapPairs.some((p) => p.suggested._id === pair.suggested._id);
           const isExecuted =
             Boolean(executedFloorItemsRef.current[pair.suggested._id]) ||
-            Boolean(planogramAppliedRef.current);
+            isForSelectedPlanogram;
 
           if (itemS && itemN) {
             if (isExecuted) {
@@ -2690,12 +2781,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               setInspectedProduct(targetProd);
               onSelectProduct?.(targetProd);
               onPairChange?.(mIdx);
-              focusCameraOnPosRef.current?.(focusPos);
-              if (scopePointerGroupRef.current) {
-                scopePointerGroupRef.current.position.copy(focusPos);
-                scopePointerGroupRef.current.visible = true;
-              }
-              setSearchedProduct(targetProd);
               if (typeof window !== "undefined" && window.innerWidth < 1024) {
                 setMobileDrawer("inspect");
               }
@@ -2707,18 +2792,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           const prod = hit.userData.product as Product;
           setInspectedProduct(prod);
           onSelectProduct?.(prod);
-
-          // Fly camera to zoom into product shelf
-          const pGroup = productGroupsMapRef.current.get(prod._id);
-          const targetPos = pGroup ? pGroup.group.position : hit.position;
-          focusCameraOnPosRef.current?.(targetPos);
-
-          // Trigger 3D Tactical Scope Reticle & Holographic Scan animation ("Accuracy Animation")
-          if (scopePointerGroupRef.current) {
-            scopePointerGroupRef.current.position.copy(targetPos);
-            scopePointerGroupRef.current.visible = true;
-          }
-          setSearchedProduct(prod);
 
           if (typeof window !== "undefined" && window.innerWidth < 1024) {
             setMobileDrawer("inspect");
@@ -2732,7 +2805,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     let initialPinchRadius = targetRadius;
 
     const onTouchStart = (e: TouchEvent) => {
-      if (isMouseOverUIRef.current) return;
       if (e.touches.length === 1) {
         isDragging = true;
         prevMouseX = e.touches[0].clientX;
@@ -2747,7 +2819,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (isMouseOverUIRef.current) return;
       if (e.touches.length === 1 && isDragging) {
         if (e.cancelable) e.preventDefault();
         const deltaX = e.touches[0].clientX - prevMouseX;
@@ -2850,8 +2921,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         holoCylMat.opacity = 0.16 + 0.1 * Math.sin(elapsed * 5);
         scopeSign.quaternion.copy(camera.quaternion);
 
-        if (searchedProduct) {
-          const targetGroup = productGroupsMap.get(searchedProduct._id);
+        const targetId = scopedTargetProductIdRef.current || searchedProduct?._id;
+        if (targetId) {
+          const targetGroup = productGroupsMap.get(targetId);
           if (targetGroup) {
             scopeGroup.position.copy(targetGroup.group.position);
           }
@@ -3399,30 +3471,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onClose ? "bg-stone-950/95 h-full" : ""
         }`}
       >
-        {onClose && (
-          <div className="shrink-0 flex items-center justify-between pb-2 mb-1 border-b border-amber-500/20">
-            <span className="text-[11px] font-black uppercase text-amber-300 flex items-center gap-1.5">
-              <Search className="w-3.5 h-3.5 text-amber-400" />
-              <span>Floor Staff 3D Inspector</span>
-            </span>
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setMobileDrawer("search")}
-                className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1 cursor-pointer"
-                title="Search another product"
-              >
-                <Search className="w-3 h-3 text-amber-400" />
-                <span>Search</span>
-              </button>
-              <button
-                onClick={onClose}
-                className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
         {hoveredMannequin ? (
           // 🌟 MANNEQUIN ENSEMBLE INSPECTOR
           <>
@@ -4007,22 +4055,24 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         </div>
 
         {/* Tab switch between Planogram Strategy and Floor Checklist */}
-        <div className="flex p-0.5 bg-stone-900/90 rounded-xl border border-amber-500/25 my-1.5 shrink-0">
-          <button
-            onClick={() => setStrategyTab("strategy")}
-            className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer text-stone-300 hover:text-white"
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>AI Planogram</span>
-          </button>
-          <button
-            onClick={() => setStrategyTab("floor_tasks")}
-            className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 shadow"
-          >
-            <ClipboardCheck className="w-3 h-3 text-stone-950" />
-            <span>⚡ Floor Tasks</span>
-          </button>
-        </div>
+        {!onClose && (
+          <div className="hidden lg:flex p-0.5 bg-stone-900/90 rounded-xl border border-amber-500/25 my-1.5 shrink-0">
+            <button
+              onClick={() => setStrategyTab("strategy")}
+              className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer text-stone-300 hover:text-white"
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>AI Planogram</span>
+            </button>
+            <button
+              onClick={() => setStrategyTab("floor_tasks")}
+              className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 shadow"
+            >
+              <ClipboardCheck className="w-3 h-3 text-stone-950" />
+              <span>⚡ Floor Tasks</span>
+            </button>
+          </div>
+        )}
 
         {/* Scrollable Middle Content */}
         <div className="flex-1 overflow-y-auto space-y-2 pr-1 min-h-0 custom-scrollbar my-2">
@@ -4370,26 +4420,28 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         </div>
 
         {/* Tab switch between Planogram Strategy and Floor Checklist */}
-        <div className="flex p-0.5 bg-stone-900/90 rounded-xl border border-amber-500/25 my-1.5 shrink-0">
-          <button
-            onClick={() => setStrategyTab("strategy")}
-            className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
-              strategyTab === "strategy"
-                ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 shadow"
-                : "text-stone-300 hover:text-white"
-            }`}
-          >
-            <Sparkles className="w-3 h-3" />
-            <span>AI Planogram</span>
-          </button>
-          <button
-            onClick={() => setStrategyTab("floor_tasks")}
-            className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer text-stone-300 hover:text-white"
-          >
-            <ClipboardCheck className="w-3 h-3 text-amber-400" />
-            <span>⚡ Floor Tasks</span>
-          </button>
-        </div>
+        {!onClose && (
+          <div className="hidden lg:flex p-0.5 bg-stone-900/90 rounded-xl border border-amber-500/25 my-1.5 shrink-0">
+            <button
+              onClick={() => setStrategyTab("strategy")}
+              className={`flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                strategyTab === "strategy"
+                  ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 shadow"
+                  : "text-stone-300 hover:text-white"
+              }`}
+            >
+              <Sparkles className="w-3 h-3" />
+              <span>AI Planogram</span>
+            </button>
+            <button
+              onClick={() => setStrategyTab("floor_tasks")}
+              className="flex-1 py-1 px-2 rounded-lg text-[10px] font-black transition-all flex items-center justify-center gap-1 cursor-pointer text-stone-300 hover:text-white"
+            >
+              <ClipboardCheck className="w-3 h-3 text-amber-400" />
+              <span>⚡ Floor Tasks</span>
+            </button>
+          </div>
+        )}
 
         {/* Scrollable Middle Content */}
         <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0 custom-scrollbar my-2">
@@ -4984,11 +5036,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       )}
 
       {/* 📱 MOBILE OVERLAYS & SLIDE-UP DRAWERS (STAFF TABLET & MOBILE FRIENDLY) */}
-      {/* Mobile Drawer Backdrop (Transparent click-catcher to dismiss with ZERO blur on 3D viewport) */}
+      {/* Mobile Drawer Backdrop (Transparent click-catcher with zero blur and passes touches through for 3D rotation) */}
       {mobileDrawer !== "none" && (
         <div
           onClick={() => setMobileDrawer("none")}
-          className="lg:hidden fixed inset-0 z-40 pointer-events-auto"
+          className="lg:hidden fixed inset-0 z-40 pointer-events-none"
         />
       )}
 

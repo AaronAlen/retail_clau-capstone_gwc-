@@ -29,9 +29,10 @@ const Layout = ({
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const location = useLocation();
 
-  // Close mobile drawer on route change
+  // Close mobile drawer and scroll to top on route change
   useEffect(() => {
     setIsMobileNavOpen(false);
+    window.scrollTo(0, 0);
   }, [location.pathname]);
 
   return (
