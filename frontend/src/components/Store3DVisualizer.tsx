@@ -28,6 +28,7 @@ import {
   Square,
   ClipboardCheck,
   Check,
+  UserCheck,
 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
@@ -135,6 +136,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const catalogProducts = useSelector((state: RootState) => state.products.items);
+  const currentUser = useSelector((state: RootState) => state.auth.user);
 
   const visualizerRootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -156,6 +158,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const [strategyTab, setStrategyTab] = useState<"strategy" | "floor_tasks">("strategy");
   const [floorCheckedItems, setFloorCheckedItems] = useState<Record<string, boolean>>({});
   const [executedFloorItems, setExecutedFloorItems] = useState<Record<string, boolean>>({});
+  const [floorSwapStaffMap, setFloorSwapStaffMap] = useState<Record<string, { staffName: string; timestamp?: string }>>({});
   const [isSavingFloorSwap, setIsSavingFloorSwap] = useState(false);
   const hasUserSelectedRef = useRef(false);
 
@@ -643,15 +646,25 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const { data: floorSwaps } = await api.get("/recommendations/floor-swaps");
         if (Array.isArray(floorSwaps) && floorSwaps.length > 0) {
           const executedMap: Record<string, boolean> = {};
+          const staffMap: Record<string, { staffName: string; timestamp?: string }> = {};
           floorSwaps.forEach((fs: any) => {
+            const who = fs.staffName || "Floor Staff";
+            const time = fs.createdAt;
             (fs.executedItems || []).forEach((it: any) => {
-              if (it.productId) executedMap[it.productId] = true;
+              if (it.productId) {
+                executedMap[it.productId] = true;
+                staffMap[it.productId] = { staffName: who, timestamp: it.executedAt || time };
+              }
             });
             (fs.displacedItems || []).forEach((it: any) => {
-              if (it.productId) executedMap[it.productId] = true;
+              if (it.productId) {
+                executedMap[it.productId] = true;
+                staffMap[it.productId] = { staffName: who, timestamp: time };
+              }
             });
           });
           setExecutedFloorItems((prev) => ({ ...prev, ...executedMap }));
+          setFloorSwapStaffMap((prev) => ({ ...prev, ...staffMap }));
         }
       } catch {}
     };
@@ -670,6 +683,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           setPlanogramApplied(incomingApplied);
           if (!incomingApplied) {
             setExecutedFloorItems({});
+            setFloorSwapStaffMap({});
             setFloorCheckedItems({});
           }
           triggerFlightAnimationRef.current?.(incomingApplied);
@@ -689,6 +703,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         planogramAppliedRef.current = true;
 
         const productIds: string[] = (data.executedItems || []).map((it: any) => it.productId).filter(Boolean);
+        const staff = data.staffName || "Floor Staff";
+        const time = data.timestamp || new Date().toISOString();
 
         // 🚀 Trigger 3D flight animation for ONLY the items executed by floor staff!
         triggerFlightAnimationRef.current?.(true, productIds);
@@ -702,9 +718,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           return next;
         });
 
+        // Record who executed this swap for immediate UI badge display
+        setFloorSwapStaffMap((prev) => {
+          const next = { ...prev };
+          productIds.forEach((id) => {
+            next[id] = { staffName: staff, timestamp: time };
+          });
+          return next;
+        });
+
         // NOTE: Camera zoom-in intentionally removed as requested by user! The view stays steady.
 
-        const staff = data.staffName || "Floor Staff";
         showToast(`⚡ ${staff} executed ${productIds.length} floor swap(s)! Live 3D flight synchronized.`, "success");
       }
     }
@@ -713,6 +737,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       if (data) {
         if (data.all) {
           setExecutedFloorItems({});
+          setFloorSwapStaffMap({});
           setFloorCheckedItems({});
           triggerFlightAnimationRef.current?.(false);
           setPlanogramApplied(false);
@@ -720,6 +745,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         } else {
           const revertedIds: string[] = data.revertedProductIds || [];
           setExecutedFloorItems((prev) => {
+            const next = { ...prev };
+            revertedIds.forEach((id) => {
+              delete next[id];
+            });
+            return next;
+          });
+          setFloorSwapStaffMap((prev) => {
             const next = { ...prev };
             revertedIds.forEach((id) => {
               delete next[id];
@@ -1049,13 +1081,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           ? (heroRunwayPairs[selectedSuggestionIdx]?.mannequinId || `mannequin-hero-${selectedSuggestionIdx + 1}`)
           : (suggestions[selectedSuggestionIdx]?.id || `sug-${selectedSuggestionIdx + 1}`);
 
+      const staffLabel = currentUser ? `${currentUser.name} (${currentUser.role.toUpperCase()})` : "Floor Staff";
       const res = await api.post("/recommendations/floor-swap", {
         swapMode,
         activePairId,
         spotIndex: selectedSuggestionIdx,
         executedItems,
         displacedItems,
-        staffName: "Showroom Floor Staff (Mobile)",
+        staffName: staffLabel,
       });
 
       if (res.data?.success) {
@@ -1065,6 +1098,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           tasksToExecute.forEach((t) => {
             next[t.item._id] = true;
             if (t.displaced?.item) next[t.displaced.item._id] = true;
+          });
+          return next;
+        });
+
+        // Store staff attribution for UI overlay
+        setFloorSwapStaffMap((prev) => {
+          const next = { ...prev };
+          const time = new Date().toISOString();
+          tasksToExecute.forEach((t) => {
+            next[t.item._id] = { staffName: staffLabel, timestamp: time };
+            if (t.displaced?.item) next[t.displaced.item._id] = { staffName: staffLabel, timestamp: time };
           });
           return next;
         });
@@ -1086,7 +1130,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         triggerFlightAnimationRef.current?.(true, prodIds);
 
         showToast(
-          `✓ Synced ${tasksToExecute.length} real-world swap(s)! Manager screen updated live.`,
+          `✓ ${staffLabel} saved ${tasksToExecute.length} real-world swap(s)! Manager screen updated live.`,
           "success"
         );
       }
@@ -1106,6 +1150,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       });
       if (res.data?.success) {
         setExecutedFloorItems((prev) => {
+          const next = { ...prev };
+          delete next[task.item._id];
+          if (task.displaced?.item) delete next[task.displaced.item._id];
+          return next;
+        });
+        setFloorSwapStaffMap((prev) => {
           const next = { ...prev };
           delete next[task.item._id];
           if (task.displaced?.item) delete next[task.displaced.item._id];
@@ -1140,6 +1190,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       if (res.data?.success) {
         const revertedIds: string[] = res.data.payload?.revertedProductIds || [];
         setExecutedFloorItems((prev) => {
+          const next = { ...prev };
+          revertedIds.forEach((id) => {
+            delete next[id];
+          });
+          return next;
+        });
+        setFloorSwapStaffMap((prev) => {
           const next = { ...prev };
           revertedIds.forEach((id) => {
             delete next[id];
@@ -3916,6 +3973,21 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                       <strong className="text-amber-200 truncate">{task.targetZone}</strong>
                     </div>
                   </div>
+
+                  {/* Swapped By Staff Attribution Badge */}
+                  {isExecuted && floorSwapStaffMap[task.item._id] && (
+                    <div className="ml-7 flex items-center gap-1.5 text-[9px] text-emerald-300 bg-emerald-950/80 px-2 py-1 rounded-xl border border-emerald-500/40 shadow-sm">
+                      <UserCheck className="w-3 h-3 text-emerald-400 shrink-0" />
+                      <span className="truncate">
+                        Swapped by: <strong className="text-white font-extrabold">{floorSwapStaffMap[task.item._id]?.staffName}</strong>
+                      </span>
+                      {floorSwapStaffMap[task.item._id]?.timestamp && (
+                        <span className="text-emerald-400/80 text-[8px] ml-auto shrink-0 font-mono">
+                          {new Date(floorSwapStaffMap[task.item._id]!.timestamp!).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Status & Quick Action Row */}
                   <div className="flex items-center justify-between pt-1 border-t border-stone-800/80 pl-7">
