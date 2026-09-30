@@ -291,6 +291,9 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
         }
     }
 
+    let finalExecutedItems = [...executedItems];
+    let finalDisplacedItems = [...(displacedItems || [])];
+
     // 3. Direct Incremental Replacement: Check if this station already had an active swap.
     // If so, restore only the old items being replaced back to their original home shelves!
     try {
@@ -303,10 +306,23 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
                 status: "active",
                 $or: queryOr,
             });
-            const incomingIds = new Set(executedItems.map((it) => String(it.productId)));
+
+            const incomingRoles = new Set(
+                executedItems.map((it) => it.role || it.targetCoords?.zone || String(it.productId))
+            );
+            const incomingProdIds = new Set(executedItems.map((it) => String(it.productId)));
+
+            const preservedExecuted = [];
+            const preservedDisplaced = [];
+
             for (const prevRec of prevRecords) {
-                for (const oldIt of prevRec.executedItems) {
-                    if (!incomingIds.has(String(oldIt.productId))) {
+                for (const oldIt of (prevRec.executedItems || [])) {
+                    const oldRole = oldIt.role || oldIt.targetCoords?.zone || String(oldIt.productId);
+                    const isReplacedBySameRole = incomingRoles.has(oldRole);
+                    const isSameProduct = incomingProdIds.has(String(oldIt.productId));
+
+                    if (isReplacedBySameRole && !isSameProduct) {
+                        // A DIFFERENT product is specifically replacing this slot/role -> revert old product to baseline!
                         const oldProd = await Product_1.default.findById(oldIt.productId);
                         if (oldProd) {
                             const baseline = getBaselineCoordsForProduct(oldProd);
@@ -314,23 +330,26 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
                                 $set: { coordinates3D: baseline },
                             });
                         }
+                    } else if (!isReplacedBySameRole && !isSameProduct) {
+                        // Keep this existing product active in the station! (e.g. Jacket stays when Pants is added)
+                        preservedExecuted.push(oldIt);
                     }
                 }
+
                 for (const oldDisp of (prevRec.displacedItems || [])) {
-                    if (!incomingIds.has(String(oldDisp.productId))) {
-                        const oldDProd = await Product_1.default.findById(oldDisp.productId);
-                        if (oldDProd) {
-                            const baseline = getBaselineCoordsForProduct(oldDProd);
-                            await Product_1.default.findByIdAndUpdate(oldDProd._id, {
-                                $set: { coordinates3D: baseline },
-                            });
-                        }
+                    if (!incomingProdIds.has(String(oldDisp.productId))) {
+                        preservedDisplaced.push(oldDisp);
                     }
                 }
+
+                // Mark older partial record as superseded
                 prevRec.status = "reverted";
                 prevRec.revertedAt = new Date();
                 await prevRec.save();
             }
+
+            finalExecutedItems = [...preservedExecuted, ...executedItems];
+            finalDisplacedItems = [...preservedDisplaced, ...(displacedItems || [])];
         }
 
         await FloorSwap_1.default.create({
@@ -339,8 +358,8 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
             spotIndex: typeof spotIndex === "number" ? spotIndex : 0,
             status: "active",
             staffName: staffName || req.user?.name || "Floor Staff",
-            executedItems,
-            displacedItems: displacedItems || [],
+            executedItems: finalExecutedItems,
+            displacedItems: finalDisplacedItems,
         });
     } catch (fsErr) {
         console.error("Failed to persist FloorSwap collection record:", fsErr);
@@ -390,49 +409,61 @@ exports.getFloorSwaps = (0, express_async_handler_1.default)(async (req, res) =>
 
 // 🔄 Revert/Reset a Floor Swap in MongoDB (Per Item or Entire Station)
 exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) => {
-    const { productId, activePairId, spotIndex } = req.body;
+    const { productId, productIds, activePairId, spotIndex } = req.body;
     const revertedProductIds = [];
 
-    if (productId) {
-        // Revert specific single product
-        const product = await Product_1.default.findById(productId);
-        if (product) {
-            const baseline = getBaselineCoordsForProduct(product);
-            await Product_1.default.findByIdAndUpdate(productId, {
-                $set: { coordinates3D: baseline },
-            });
-            revertedProductIds.push(String(productId));
+    const targetProdIds = [];
+    if (productId) targetProdIds.push(String(productId));
+    if (Array.isArray(productIds)) {
+        productIds.forEach((id) => {
+            if (id) targetProdIds.push(String(id));
+        });
+    }
 
-            const floorRecord = await FloorSwap_1.default.findOne({
-                status: "active",
-                "executedItems.productId": productId,
-            });
+    // 1. Revert explicit product IDs if provided
+    if (targetProdIds.length > 0) {
+        for (const pId of targetProdIds) {
+            const product = await Product_1.default.findById(pId);
+            if (product) {
+                const baseline = getBaselineCoordsForProduct(product);
+                await Product_1.default.findByIdAndUpdate(pId, {
+                    $set: { coordinates3D: baseline },
+                });
+                revertedProductIds.push(String(pId));
 
-            if (floorRecord) {
-                const itemIdx = floorRecord.executedItems.findIndex((it) => String(it.productId) === String(productId));
-                if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
-                    const dispItem = floorRecord.displacedItems[itemIdx];
-                    if (dispItem.productId) {
-                        const dProd = await Product_1.default.findById(dispItem.productId);
-                        if (dProd) {
-                            const dBaseline = getBaselineCoordsForProduct(dProd);
-                            await Product_1.default.findByIdAndUpdate(dispItem.productId, {
-                                $set: { coordinates3D: dBaseline },
-                            });
-                            revertedProductIds.push(String(dispItem.productId));
+                const floorRecords = await FloorSwap_1.default.find({
+                    status: "active",
+                    "executedItems.productId": pId,
+                });
+
+                for (const floorRecord of floorRecords) {
+                    const itemIdx = floorRecord.executedItems.findIndex((it) => String(it.productId) === String(pId));
+                    if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
+                        const dispItem = floorRecord.displacedItems[itemIdx];
+                        if (dispItem.productId) {
+                            const dProd = await Product_1.default.findById(dispItem.productId);
+                            if (dProd) {
+                                const dBaseline = getBaselineCoordsForProduct(dProd);
+                                await Product_1.default.findByIdAndUpdate(dispItem.productId, {
+                                    $set: { coordinates3D: dBaseline },
+                                });
+                                revertedProductIds.push(String(dispItem.productId));
+                            }
                         }
                     }
+                    floorRecord.executedItems = floorRecord.executedItems.filter((it) => String(it.productId) !== String(pId));
+                    if (floorRecord.executedItems.length === 0) {
+                        floorRecord.status = "reverted";
+                        floorRecord.revertedAt = new Date();
+                    }
+                    await floorRecord.save();
                 }
-                floorRecord.executedItems = floorRecord.executedItems.filter((it) => String(it.productId) !== String(productId));
-                if (floorRecord.executedItems.length === 0) {
-                    floorRecord.status = "reverted";
-                    floorRecord.revertedAt = new Date();
-                }
-                await floorRecord.save();
             }
         }
-    } else if (activePairId || typeof spotIndex === "number") {
-        // Revert all products in the active station / pair
+    }
+
+    // 2. Revert any active floor swap records matching this station
+    if (activePairId || typeof spotIndex === "number") {
         const query = { status: "active" };
         if (activePairId && typeof spotIndex === "number") {
             query.$or = [{ activePairId }, { spotIndex }];
@@ -472,13 +503,15 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
         }
     }
 
+    const uniqueReverted = Array.from(new Set(revertedProductIds));
+
     const remainingActive = await FloorSwap_1.default.countDocuments({ status: "active" });
     if (remainingActive === 0) {
         await Planogram_1.default.updateMany({}, { applied: false });
     }
 
     const payload = {
-        revertedProductIds,
+        revertedProductIds: uniqueReverted,
         activePairId,
         spotIndex,
         remainingActive,

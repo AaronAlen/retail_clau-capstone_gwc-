@@ -1339,28 +1339,53 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           ? (heroRunwayPairs[selectedSuggestionIdx]?.mannequinId || `mannequin-hero-${selectedSuggestionIdx + 1}`)
           : (suggestions[selectedSuggestionIdx]?.id || `sug-${selectedSuggestionIdx + 1}`);
 
+      // Collect all candidate product IDs in this active station
+      const stationProductIds: string[] = [];
+      if (swapMode === "hero_showcase") {
+        const hero = heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0];
+        if (hero) {
+          [hero.outfit.jacket, hero.outfit.tshirt, hero.outfit.pants, hero.outfit.shoes].forEach((p) => {
+            if (p?._id) stationProductIds.push(String(p._id));
+          });
+          if (hero.displacedOutfit) {
+            [hero.displacedOutfit.jacket, hero.displacedOutfit.tshirt, hero.displacedOutfit.pants, hero.displacedOutfit.shoes].forEach((p) => {
+              if (p?._id) stationProductIds.push(String(p._id));
+            });
+          }
+        }
+      } else {
+        const pairs = allCupboardSwapPairs[selectedSuggestionIdx] || swapPairs;
+        pairs.forEach((p) => {
+          if (p.suggested?._id) stationProductIds.push(String(p.suggested._id));
+          if (p.neighbor?._id) stationProductIds.push(String(p.neighbor._id));
+        });
+      }
+
       const staffLabel = currentUser ? `${currentUser.name} (${currentUser.role.toUpperCase()})` : "Floor Staff";
       const res = await api.post("/recommendations/floor-swap/revert", {
         activePairId,
         spotIndex: selectedSuggestionIdx,
+        productIds: stationProductIds,
         staffName: staffLabel,
       });
 
       if (res.data?.success) {
-        const revertedIds: string[] = (res.data.payload?.revertedProductIds || []).map(String);
-        revertedIds.forEach((id) => {
+        const rawReverted: string[] = (res.data.payload?.revertedProductIds || []).map(String);
+        const allReverted = Array.from(new Set([...rawReverted, ...stationProductIds]));
+
+        allReverted.forEach((id) => {
           delete executedFloorItemsRef.current[id];
         });
         setExecutedFloorItems((prev) => {
           const next = { ...prev };
-          revertedIds.forEach((id) => {
+          allReverted.forEach((id) => {
             delete next[id];
           });
           return next;
         });
         setFloorSwapStaffMap((prev) => {
           const next = { ...prev };
-          revertedIds.forEach((id) => {
+          allReverted.forEach((id) => {
             delete next[id];
           });
           return next;
@@ -1369,10 +1394,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           planogramAppliedRef.current = false;
           setPlanogramApplied(false);
         }
-        triggerFlightAnimationRef.current?.(false, revertedIds);
+
+        const idsToFly = rawReverted.length > 0 ? rawReverted : stationProductIds;
+        if (idsToFly.length > 0) {
+          triggerFlightAnimationRef.current?.(false, idsToFly);
+        }
         dispatch(fetchProducts());
         showToast(
-          `🔄 Reset all ${revertedIds.length} item(s) in this station back to original shelves!`,
+          `🔄 Reset all ${idsToFly.length} item(s) in this station back to original shelves!`,
           "info"
         );
       }
@@ -2934,6 +2963,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     };
 
     triggerFlightAnimationRef.current = (forward = true, specificProductIds?: string[]) => {
+      if (specificProductIds !== undefined && specificProductIds.length === 0) {
+        return;
+      }
       flightAnim.active = true;
       flightAnim.startTime = performance.now();
       flightAnim.duration = 2000;
@@ -3325,7 +3357,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                 ];
                 return hIds.some((id) => specificIds.has(id));
               })
-            : heroRunwayOutfits;
+            : [heroRunwayOutfits[selectedSuggestionIdxRef.current] || heroRunwayOutfits[0]];
 
           targetHeroes.forEach((hero) => {
             const m = mannequins[hero.index];
@@ -3428,7 +3460,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   specificIds.has(p.suggested._id) ||
                   specificIds.has(p.neighbor._id)
               )
-            : swapPairs;
+            : (allCupboardSwapPairs[selectedSuggestionIdxRef.current] || swapPairs);
           targetPairs.forEach((pair) => {
             const itemS = productGroupsMap.get(pair.suggested._id);
             const itemN = productGroupsMap.get(pair.neighbor._id);
@@ -3475,7 +3507,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   ];
                   return hIds.some((id) => specificIds.has(id));
                 })
-              : heroRunwayOutfits;
+              : [heroRunwayOutfits[selectedSuggestionIdxRef.current] || heroRunwayOutfits[0]];
 
             targetHeroes.forEach((hero) => {
               const m = mannequins[hero.index];
@@ -3538,7 +3570,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                     specificIds.has(p.suggested._id) ||
                     specificIds.has(p.neighbor._id)
                 )
-              : swapPairs;
+              : (allCupboardSwapPairs[selectedSuggestionIdxRef.current] || swapPairs);
             targetPairs.forEach((pair) => {
               const itemS = productGroupsMap.get(pair.suggested._id);
               const itemN = productGroupsMap.get(pair.neighbor._id);
