@@ -509,7 +509,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     const colors = [0xc084fc, 0x38bdf8, 0xf43f5e, 0x10b981, 0xfbbf24];
     const colorHexes = ["#c084fc", "#38bdf8", "#f43f5e", "#10b981", "#fbbf24"];
 
-    // Global tracking to prevent collision or repeated swapping on the exact same product/slot across suggestions
+    // 1. Collect all product IDs assigned to ANY recommendation pair (Hero Runways + Cupboard recommendations)
+    const allAssignedProductIds = new Set<string>();
+    (recommendations || []).forEach((r) => {
+      if (r.sourceProduct?._id) allAssignedProductIds.add(String(r.sourceProduct._id));
+      (r.similarProducts || []).forEach((p: any) => {
+        if (p?._id) allAssignedProductIds.add(String(p._id));
+      });
+    });
+
+    // 2. Global tracking to ensure each cupboard gets 4 distinct, unassigned neighbor items with 0 cross-store collision
     const globallyUsedNeighborIds = new Set<string>();
 
     return suggestions.map((sug, sugIdx) => {
@@ -525,30 +534,37 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       else if (cat.includes("jean") || cat.includes("denim")) cupboardProds = jeans;
       else if (cat.includes("t-shirt") || cat.includes("tee")) cupboardProds = tshirts;
 
-      // Available neighbors inside the anchor's cupboard (must not be anchor, must not be one of the partners)
-      const partnerIds = new Set(partners.map((p) => p._id));
-      const availNeighbors = cupboardProds.filter(
-        (p) => p._id !== anchor._id && !partnerIds.has(p._id)
+      // Available neighbors inside the anchor's cupboard:
+      // MUST NOT be part of ANY recommendation pair across the store, and MUST NOT be allocated to another cupboard!
+      const unassignedNeighbors = cupboardProds.filter(
+        (p) =>
+          !allAssignedProductIds.has(String(p._id)) &&
+          !globallyUsedNeighborIds.has(String(p._id)) &&
+          String(p._id) !== String(anchor._id)
       );
 
-      // Slower-moving neighbor or nearest slot to anchor in this cupboard
-      const fSku = parseInt((anchor.sku || "").replace(/\D/g, ""), 10) || 0;
-      availNeighbors.sort((a, b) => {
-        const aSku = parseInt((a.sku || "").replace(/\D/g, ""), 10) || 0;
-        const bSku = parseInt((b.sku || "").replace(/\D/g, ""), 10) || 0;
-        return Math.abs(aSku - fSku) - Math.abs(bSku - fSku);
-      });
-
-      // Guarantee exactly 4 distinct neighbor items within this cupboard
       const selectedNeighbors: Product[] = [];
-      for (const cand of availNeighbors) {
+      for (const cand of unassignedNeighbors) {
         if (selectedNeighbors.length >= partners.length) break;
         selectedNeighbors.push(cand);
+        globallyUsedNeighborIds.add(String(cand._id));
       }
-      for (const cand of cupboardProds) {
-        if (selectedNeighbors.length >= partners.length) break;
-        if (cand._id !== anchor._id && !selectedNeighbors.some((n) => n._id === cand._id)) {
-          selectedNeighbors.push(cand);
+
+      // Safe fallback if catalog products are still loading or small test dataset:
+      if (selectedNeighbors.length < partners.length) {
+        const partnerIds = new Set(partners.map((p) => String(p._id)));
+        for (const cand of cupboardProds) {
+          if (selectedNeighbors.length >= partners.length) break;
+          const cId = String(cand._id);
+          if (
+            cId !== String(anchor._id) &&
+            !partnerIds.has(cId) &&
+            !selectedNeighbors.some((n) => String(n._id) === cId) &&
+            !globallyUsedNeighborIds.has(cId)
+          ) {
+            selectedNeighbors.push(cand);
+            globallyUsedNeighborIds.add(cId);
+          }
         }
       }
 
@@ -564,7 +580,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         };
       });
     });
-  }, [suggestions, defaultFallbackAnchor, defaultFallbackPartner, jackets, shirts, jeans, tshirts, shoes]);
+  }, [suggestions, recommendations, defaultFallbackAnchor, defaultFallbackPartner, jackets, shirts, jeans, tshirts, shoes]);
 
   const swapPairs = allCupboardSwapPairs[selectedSuggestionIdx] || allCupboardSwapPairs[0] || [];
   const allFlattenedCupboardPairs = React.useMemo(() => allCupboardSwapPairs.flat(), [allCupboardSwapPairs]);
@@ -789,12 +805,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               if (it.productId) {
                 executedMap[it.productId] = true;
                 staffMap[it.productId] = { staffName: who, timestamp: it.executedAt || time };
-              }
-            });
-            (fs.displacedItems || []).forEach((it: any) => {
-              if (it.productId) {
-                executedMap[it.productId] = true;
-                staffMap[it.productId] = { staffName: who, timestamp: time };
               }
             });
           });
@@ -1145,10 +1155,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
       const displacedItems = tasksToExecute
         .filter((t) => t.displaced && t.displaced.item)
-        .map((t) => ({
-          productId: t.displaced!.item._id,
-          targetCoords: t.displaced!.targetCoords,
-        }));
+        .map((t) => {
+          const dLoc = getProductShelfLocation(t.displaced!.item);
+          return {
+            productId: t.displaced!.item._id,
+            targetCoords: t.displaced!.targetCoords,
+            originalCoords: {
+              x: dLoc.x,
+              y: dLoc.y,
+              z: dLoc.z,
+              zone: dLoc.zone || "Shelf Slot",
+            },
+          };
+        });
 
       const activePairId =
         swapMode === "hero_showcase"
@@ -1166,12 +1185,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       });
 
       if (res.data?.success) {
-        // Mark as executed in local state
+        // Mark as executed in local state (strictly for primary task items)
         setExecutedFloorItems((prev) => {
           const next = { ...prev };
           tasksToExecute.forEach((t) => {
             next[t.item._id] = true;
-            if (t.displaced?.item) next[t.displaced.item._id] = true;
           });
           return next;
         });
@@ -1182,7 +1200,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           const time = new Date().toISOString();
           tasksToExecute.forEach((t) => {
             next[t.item._id] = { staffName: staffLabel, timestamp: time };
-            if (t.displaced?.item) next[t.displaced.item._id] = { staffName: staffLabel, timestamp: time };
           });
           return next;
         });

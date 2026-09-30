@@ -342,6 +342,23 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
             revertedProductIds.push(String(productId));
 
             if (floorRecord) {
+                const itemIdx = floorRecord.executedItems.findIndex((it) => String(it.productId) === String(productId));
+                if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
+                    const dispItem = floorRecord.displacedItems[itemIdx];
+                    if (dispItem.productId) {
+                        const dOrig = dispItem.originalCoords;
+                        await Product_1.default.findByIdAndUpdate(dispItem.productId, {
+                            coordinates3D: {
+                                x: dOrig?.x,
+                                y: dOrig?.y,
+                                z: dOrig?.z,
+                                zone: dOrig?.zone || "Original Shelf Slot",
+                                isRelocated: false,
+                            },
+                        });
+                        revertedProductIds.push(String(dispItem.productId));
+                    }
+                }
                 floorRecord.executedItems = floorRecord.executedItems.filter((it) => String(it.productId) !== String(productId));
                 if (floorRecord.executedItems.length === 0) {
                     floorRecord.status = "reverted";
@@ -371,10 +388,17 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
                 });
                 revertedProductIds.push(String(it.productId));
             }
-            for (const d of rec.displacedItems) {
+            for (const d of (rec.displacedItems || [])) {
                 if (d.productId) {
+                    const orig = d.originalCoords;
                     await Product_1.default.findByIdAndUpdate(d.productId, {
-                        "coordinates3D.isRelocated": false,
+                        coordinates3D: {
+                            x: orig?.x,
+                            y: orig?.y,
+                            z: orig?.z,
+                            zone: orig?.zone || "Original Shelf Slot",
+                            isRelocated: false,
+                        },
                     });
                     revertedProductIds.push(String(d.productId));
                 }

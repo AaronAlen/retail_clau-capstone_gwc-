@@ -5,6 +5,7 @@ import { computeVelocity } from "../services/velocity.service";
 import { buildRecommendationsForFastMovers, getSimilarProducts } from "../services/recommendation.service";
 import Planogram from "../models/Planogram";
 import Product from "../models/Product";
+import FloorSwap from "../models/FloorSwap";
 import RecommendationSnapshot from "../models/RecommendationSnapshot";
 import { getIO } from "../sockets";
 
@@ -272,4 +273,226 @@ export const resetPlanogram = asyncHandler(async (req: AuthRequest, res: Respons
     } catch {}
   }
   res.json(planogram || { applied: false });
+});
+
+export const executeFloorSwap = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const {
+    swapMode,
+    activePairId,
+    spotIndex,
+    executedItems,
+    displacedItems,
+    staffName,
+  } = req.body;
+
+  if (!executedItems || !Array.isArray(executedItems) || executedItems.length === 0) {
+    res.status(400);
+    throw new Error("No executed items provided for floor swap");
+  }
+
+  // 1. Update coordinates in MongoDB for executed items
+  for (const item of executedItems) {
+    if (item.productId && item.targetCoords) {
+      await Product.findByIdAndUpdate(item.productId, {
+        coordinates3D: {
+          x: item.targetCoords.x,
+          y: item.targetCoords.y,
+          z: item.targetCoords.z,
+          zone: item.targetCoords.zone || "Showroom Runway Slot",
+          isRelocated: true,
+        },
+      });
+    }
+  }
+
+  // 2. Update coordinates in MongoDB for displaced items if any
+  if (displacedItems && Array.isArray(displacedItems)) {
+    for (const item of displacedItems) {
+      if (item.productId && item.targetCoords) {
+        await Product.findByIdAndUpdate(item.productId, {
+          coordinates3D: {
+            x: item.targetCoords.x,
+            y: item.targetCoords.y,
+            z: item.targetCoords.z,
+            zone: item.targetCoords.zone || "Donor Cupboard Shelf",
+            isRelocated: true,
+          },
+        });
+      }
+    }
+  }
+
+  // 3. Save / Update in dedicated FloorSwap MongoDB Collection
+  try {
+    await FloorSwap.create({
+      swapMode: swapMode || "hero_showcase",
+      activePairId: activePairId || "sug-1",
+      spotIndex: typeof spotIndex === "number" ? spotIndex : 0,
+      status: "active",
+      staffName: staffName || req.user?.name || "Floor Staff",
+      executedItems,
+      displacedItems: displacedItems || [],
+    });
+  } catch (fsErr) {
+    console.error("Failed to persist FloorSwap collection record:", fsErr);
+  }
+
+  // 4. Update Planogram state in MongoDB
+  let planogram = await Planogram.findOne().sort({ updatedAt: -1 });
+  if (!planogram) {
+    planogram = new Planogram();
+  }
+  planogram.applied = true;
+  planogram.activePairId = activePairId || "sug-1";
+  if (swapMode) planogram.swapMode = swapMode;
+  await planogram.save();
+
+  const payload = {
+    swapMode,
+    activePairId,
+    spotIndex,
+    executedItems,
+    displacedItems,
+    staffName: staffName || req.user?.name || "Floor Staff",
+    applied: true,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    getIO().emit("floor_swap_executed", payload);
+    getIO().emit("product:updated");
+  } catch (err) {
+    console.error("Socket emit failed:", err);
+  }
+
+  res.json({
+    success: true,
+    message: `Successfully executed & synced ${executedItems.length} floor swap(s)`,
+    payload,
+  });
+});
+
+export const getFloorSwaps = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const activeSwaps = await FloorSwap.find({ status: "active" }).sort({ createdAt: -1 });
+  res.json(activeSwaps);
+});
+
+export const revertFloorSwap = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { productId, activePairId, spotIndex } = req.body;
+  const revertedProductIds: string[] = [];
+
+  if (productId) {
+    const product = await Product.findById(productId);
+    if (product) {
+      const floorRecord = await FloorSwap.findOne({
+        status: "active",
+        "executedItems.productId": productId,
+      });
+      const itemRecord = floorRecord?.executedItems.find((it: any) => String(it.productId) === String(productId));
+      const orig = itemRecord?.originalCoords;
+
+      await Product.findByIdAndUpdate(productId, {
+        coordinates3D: {
+          x: orig?.x ?? (product as any).coordinates3D?.x,
+          y: orig?.y ?? (product as any).coordinates3D?.y,
+          z: orig?.z ?? (product as any).coordinates3D?.z,
+          zone: orig?.zone ?? "Shelf Slot",
+          isRelocated: false,
+        },
+      });
+      revertedProductIds.push(String(productId));
+
+      if (floorRecord) {
+        const itemIdx = floorRecord.executedItems.findIndex((it: any) => String(it.productId) === String(productId));
+        if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
+          const dispItem = floorRecord.displacedItems[itemIdx];
+          if (dispItem.productId) {
+            const dOrig = dispItem.originalCoords;
+            await Product.findByIdAndUpdate(dispItem.productId, {
+              coordinates3D: {
+                x: dOrig?.x,
+                y: dOrig?.y,
+                z: dOrig?.z,
+                zone: dOrig?.zone || "Original Shelf Slot",
+                isRelocated: false,
+              },
+            });
+            revertedProductIds.push(String(dispItem.productId));
+          }
+        }
+        floorRecord.executedItems = floorRecord.executedItems.filter((it: any) => String(it.productId) !== String(productId));
+        if (floorRecord.executedItems.length === 0) {
+          floorRecord.status = "reverted";
+          floorRecord.revertedAt = new Date();
+        }
+        await floorRecord.save();
+      }
+    }
+  } else if (activePairId || typeof spotIndex === "number") {
+    const query: any = { status: "active" };
+    if (activePairId) query.activePairId = activePairId;
+    if (typeof spotIndex === "number") query.spotIndex = spotIndex;
+
+    const records = await FloorSwap.find(query);
+    for (const rec of records) {
+      for (const it of rec.executedItems) {
+        const orig = it.originalCoords;
+        await Product.findByIdAndUpdate(it.productId, {
+          coordinates3D: {
+            x: orig?.x,
+            y: orig?.y,
+            z: orig?.z,
+            zone: orig?.zone || "Original Shelf Slot",
+            isRelocated: false,
+          },
+        });
+        revertedProductIds.push(String(it.productId));
+      }
+      for (const d of (rec.displacedItems || [])) {
+        if (d.productId) {
+          const orig = d.originalCoords;
+          await Product.findByIdAndUpdate(d.productId, {
+            coordinates3D: {
+              x: orig?.x,
+              y: orig?.y,
+              z: orig?.z,
+              zone: orig?.zone || "Original Shelf Slot",
+              isRelocated: false,
+            },
+          });
+          revertedProductIds.push(String(d.productId));
+        }
+      }
+      rec.status = "reverted";
+      rec.revertedAt = new Date();
+      await rec.save();
+    }
+  }
+
+  const remainingActive = await FloorSwap.countDocuments({ status: "active" });
+  if (remainingActive === 0) {
+    await Planogram.updateMany({}, { applied: false });
+  }
+
+  const payload = {
+    revertedProductIds,
+    activePairId,
+    spotIndex,
+    remainingActive,
+    staffName: req.body?.staffName || req.user?.name || "Floor Staff",
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    getIO().emit("floor_swap_reverted", payload);
+    getIO().emit("product:updated");
+  } catch (err) {
+    console.error("Socket emit failed on revert:", err);
+  }
+
+  res.json({
+    success: true,
+    message: `Successfully reverted ${revertedProductIds.length} floor swap item(s)`,
+    payload,
+  });
 });
