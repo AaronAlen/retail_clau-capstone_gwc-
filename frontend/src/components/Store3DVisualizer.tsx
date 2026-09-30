@@ -98,7 +98,7 @@ const ShowroomClock = React.memo(() => {
 
   if (!time) return null;
   return (
-    <div className="glass-panel px-3 py-1.5 rounded-xl hidden sm:flex items-center gap-1.5 text-xs text-amber-300 border border-amber-500/30">
+    <div className="h-9 glass-panel px-3 rounded-xl hidden sm:flex items-center gap-1.5 text-xs text-amber-300 border border-amber-500/30">
       <Clock className="w-3.5 h-3.5 text-amber-400" />
       <span className="font-mono text-[11px] font-bold">{time}</span>
     </div>
@@ -4684,28 +4684,23 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="glass-panel px-2.5 sm:px-3 py-1.5 rounded-2xl flex items-center gap-2 pointer-events-auto border border-amber-500/35 shadow-2xl shrink-0"
+          className="h-9 glass-panel px-2.5 sm:px-3 rounded-xl sm:rounded-2xl flex items-center gap-1.5 sm:gap-2 pointer-events-auto border border-amber-500/35 shadow-2xl shrink-0"
         >
-          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-stone-950 font-black text-xs shadow-md shadow-amber-500/25 shrink-0">
+          <div className="w-5.5 h-5.5 sm:w-6 sm:h-6 rounded-lg bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 flex items-center justify-center text-stone-950 font-black text-[10px] sm:text-[11px] shadow-sm shrink-0">
             VR
           </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-xs font-black uppercase tracking-wider text-white drop-shadow-sm whitespace-nowrap">
-                VELOCITY <span className="hidden xl:inline">SHOWROOM</span>
-              </h3>
-              <span className="flex h-2 w-2 relative shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </span>
-            </div>
-            <p className="text-[9px] text-amber-300 font-semibold drop-shadow-sm hidden 2xl:block whitespace-nowrap">
-              5 Cupboards • 60 Live SKUs
-            </p>
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <h3 className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-white drop-shadow-sm whitespace-nowrap">
+              VELOCITY <span className="hidden xl:inline">SHOWROOM</span>
+            </h3>
+            <span className="flex h-2 w-2 relative shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+            </span>
           </div>
         </div>
 
-        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING (Dead-Center Aligned) */}
+        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING (Flex-1 flow, zero collision) */}
         <div
           ref={searchContainerRef}
           onMouseEnter={() => {
@@ -4714,9 +4709,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="absolute left-1/2 -translate-x-1/2 pointer-events-auto w-[42vw] min-w-[120px] max-w-[240px] sm:max-w-xs md:max-w-sm z-30"
+          className="flex-1 min-w-0 max-w-xs md:max-w-sm mx-1.5 sm:mx-3 pointer-events-auto relative z-30 h-9"
         >
-          <div className="relative flex items-center">
+          <div className="relative flex items-center h-full">
             <Search className="w-3.5 h-3.5 text-amber-400 absolute left-2.5 sm:left-3 pointer-events-none" />
             <input
               type="text"
@@ -4727,7 +4722,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               }}
               onFocus={() => setIsSearchOpen(true)}
               placeholder="Search..."
-              className="w-full glass-search-input text-white placeholder-amber-200/75 pl-7 sm:pl-9 pr-6 sm:pr-8 py-1.5 sm:py-2 rounded-2xl text-[11px] sm:text-xs focus:outline-none transition-all font-semibold"
+              className="w-full h-full glass-search-input text-white placeholder-amber-200/75 pl-7 sm:pl-9 pr-6 sm:pr-8 rounded-xl sm:rounded-2xl text-[11px] sm:text-xs focus:outline-none transition-all font-semibold"
             />
             {searchQuery && (
               <button
@@ -4795,7 +4790,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           {/* Toggle Sidebar Overlay Button (Desktop Only) */}
           <button
             onClick={() => setIsOverlayVisible((prev) => !prev)}
-            className={`hidden lg:flex px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all border shrink-0 ${
+            className={`h-9 hidden lg:flex px-2 sm:px-2.5 rounded-xl text-xs font-bold items-center gap-1.5 transition-all border shrink-0 ${
               isOverlayVisible
                 ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 border-amber-400 shadow-lg shadow-orange-500/30 font-black"
                 : "glass-panel text-amber-200 border-amber-500/40 hover:text-white"
@@ -4809,7 +4804,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           {/* Auto Rotate Button */}
           <button
             onClick={() => setAutoRotate((prev) => !prev)}
-            className={`p-1.5 sm:p-2 rounded-xl transition-all border shrink-0 ${
+            className={`h-9 w-9 flex items-center justify-center rounded-xl transition-all border shrink-0 ${
               autoRotate
                 ? "bg-amber-500/25 border-amber-500/70 text-amber-300 shadow-md shadow-amber-500/20"
                 : "glass-panel text-slate-300 border-amber-500/30 hover:text-white"
@@ -4820,7 +4815,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           </button>
 
           {/* Zoom Controls (Hidden on small screens) */}
-          <div className="hidden lg:flex items-center glass-panel rounded-xl border border-amber-500/30 p-0.5 shadow-sm shrink-0">
+          <div className="h-9 hidden lg:flex items-center glass-panel rounded-xl border border-amber-500/30 px-1 shadow-sm shrink-0">
             <button
               onClick={() => zoomControlRef.current.zoomIn()}
               className="p-1 sm:p-1.5 rounded-lg text-slate-200 hover:text-amber-300 hover:bg-stone-800 transition-colors cursor-pointer shrink-0"
@@ -4849,7 +4844,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           {/* 🌟 FULLSCREEN BUTTON - GUARANTEED 100% VISIBLE WITH GLOWING AMBER ACCENT */}
           <button
             onClick={toggleFullScreen}
-            className={`p-1.5 sm:p-2 rounded-xl transition-all shadow-lg cursor-pointer shrink-0 border ${
+            className={`h-9 w-9 flex items-center justify-center rounded-xl transition-all shadow-lg cursor-pointer shrink-0 border ${
               isFullScreen
                 ? "bg-amber-500 text-stone-950 border-amber-300 font-bold shadow-amber-500/30 ring-2 ring-amber-400/50"
                 : "glass-panel text-amber-300 hover:text-white border-amber-500/60 hover:border-amber-400 hover:bg-amber-500/20"

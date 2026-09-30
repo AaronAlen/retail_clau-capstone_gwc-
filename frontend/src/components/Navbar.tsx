@@ -139,7 +139,7 @@ const Navbar: React.FC<NavbarProps> = ({
           >
             <Bell className="w-4 h-4" />
             {lowStockItems.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center animate-pulse">
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-[10px] font-bold text-white flex items-center justify-center shadow-sm">
                 {lowStockItems.length}
               </span>
             )}
