@@ -3,68 +3,99 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.revertFloorSwap = exports.getFloorSwaps = exports.executeFloorSwap = exports.resetPlanogram = exports.applyPlanogram = exports.getPlanogramState = exports.getSimilarForProduct = exports.getRecommendations = void 0;
+exports.recalculateRecommendations = exports.revertFloorSwap = exports.getFloorSwaps = exports.executeFloorSwap = exports.resetPlanogram = exports.applyPlanogram = exports.getPlanogramState = exports.getSimilarForProduct = exports.getRecommendations = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const velocity_service_1 = require("../services/velocity.service");
 const recommendation_service_1 = require("../services/recommendation.service");
 const Planogram_1 = __importDefault(require("../models/Planogram"));
 const Product_1 = __importDefault(require("../models/Product"));
 const FloorSwap_1 = __importDefault(require("../models/FloorSwap"));
+const RecommendationSnapshot_1 = __importDefault(require("../models/RecommendationSnapshot"));
 const sockets_1 = require("../sockets");
 const updateCoordinates_1 = require("../utils/updateCoordinates");
+
+/**
+ * Internal computation generator for 8 strategic store pairs
+ * (3 Premier Hero Runway Mannequin Outfits + 5 In-Aisle Cupboard Bays)
+ */
+const generateRecommendationsCalculation = async (useAI = true) => {
+    const results = await (0, velocity_service_1.computeVelocity)(7);
+    const normalizeCategory = (cat) => {
+        const c = (cat || "").toLowerCase();
+        if (c.includes("jacket") || c.includes("coat") || c.includes("blazer")) return "Jackets";
+        if (c.includes("t-shirt") || c.includes("tee")) return "T-Shirts";
+        if (c.includes("shirt") || c.includes("oxford") || c.includes("linen")) return "Shirts";
+        if (c.includes("jean") || c.includes("denim") || c.includes("trouser")) return "Jeans";
+        if (c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker")) return "Shoes";
+        return cat || "General";
+    };
+
+    const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
+    const sortedOverall = [...results].sort((a, b) => b.velocityPerDay - a.velocityPerDay);
+
+    // 1. Pick Top 3 overall fast-movers for Hero Runway Stations 1, 2, 3
+    const heroRunwayFastMovers = [];
+    const allocatedIds = new Set();
+    for (const fm of sortedOverall) {
+        if (heroRunwayFastMovers.length >= 3) break;
+        heroRunwayFastMovers.push(fm);
+        allocatedIds.add(String(fm.product._id));
+    }
+
+    // 2. Pick 1 top fast-mover from each of the 5 distinct store departments for Cupboards 1 to 5
+    const cupboardFastMovers = [];
+    storeDepartments.forEach((dept) => {
+        const deptItems = results.filter((r) => normalizeCategory(r.product?.category) === dept);
+        deptItems.sort((a, b) => b.velocityPerDay - a.velocityPerDay);
+        const candidate = deptItems.find((it) => !allocatedIds.has(String(it.product._id))) || deptItems[0];
+        if (candidate) {
+            cupboardFastMovers.push(candidate);
+            allocatedIds.add(String(candidate.product._id));
+        }
+    });
+
+    const final8FastMovers = [...heroRunwayFastMovers, ...cupboardFastMovers].slice(0, 8);
+    const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(final8FastMovers, useAI);
+    return recommendations;
+};
+
+/**
+ * GET /api/recommendations
+ * Reads the latest saved recommendations snapshot from MongoDB.
+ * Does NOT re-calculate unless the database has never been initialized.
+ * Fast, deterministic, and consistent for all users.
+ */
 exports.getRecommendations = (0, express_async_handler_1.default)(async (req, res) => {
     try {
-        const useAI = req.query.ai === "true";
-        const results = await (0, velocity_service_1.computeVelocity)(7);
-        
-        // 🌟 Balance fast-movers across all 5 store departments (Jackets, Shirts, Jeans, T-Shirts, Shoes)
-        const normalizeCategory = (cat) => {
-            const c = (cat || "").toLowerCase();
-            if (c.includes("jacket") || c.includes("coat") || c.includes("blazer")) return "Jackets";
-            if (c.includes("t-shirt") || c.includes("tee")) return "T-Shirts";
-            if (c.includes("shirt") || c.includes("oxford") || c.includes("linen")) return "Shirts";
-            if (c.includes("jean") || c.includes("denim") || c.includes("trouser")) return "Jeans";
-            if (c.includes("shoe") || c.includes("boot") || c.includes("loafer") || c.includes("sneaker")) return "Shoes";
-            return cat;
-        };
+        let snapshot = await RecommendationSnapshot_1.default.findOne().sort({ createdAt: -1 });
 
-        const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
-
-        // 🌟 Construct exactly 8 strategic store merchandising pairs:
-        // - Pairs 1 to 3 (Indices 0, 1, 2): 3 Premier Hero Runway Mannequin Outfits
-        // - Pairs 4 to 8 (Indices 3, 4, 5, 6, 7): 5 In-Aisle Cupboard Bays (Jackets, Shirts, Jeans, T-Shirts, Shoes)
-        const sortedOverall = [...results].sort((a, b) => b.velocityPerDay - a.velocityPerDay);
-
-        // 1. Pick Top 3 overall fast-movers for Hero Runway Stations 1, 2, 3
-        const heroRunwayFastMovers = [];
-        const allocatedIds = new Set();
-
-        for (const fm of sortedOverall) {
-            if (heroRunwayFastMovers.length >= 3) break;
-            heroRunwayFastMovers.push(fm);
-            allocatedIds.add(String(fm.product._id));
+        // If no snapshot exists yet in MongoDB (initial cold start), compute once and persist
+        if (!snapshot || !snapshot.recommendations || snapshot.recommendations.length === 0) {
+            const useAI = req.query.ai === "true";
+            const freshRecs = await generateRecommendationsCalculation(useAI);
+            snapshot = await RecommendationSnapshot_1.default.create({
+                recommendations: freshRecs,
+                lastCalculatedAt: new Date(),
+                calculatedBy: {
+                    userId: req.user?.id || req.user?._id || "system",
+                    name: req.user?.name || "System Initializer",
+                    role: req.user?.role || "admin",
+                },
+                useAI,
+                pairCount: freshRecs.length,
+            });
         }
 
-        // 2. Pick 1 top fast-mover from each of the 5 distinct store departments for Cupboards 1 to 5
-        const cupboardFastMovers = [];
-        storeDepartments.forEach((dept) => {
-            const deptItems = results.filter((r) => normalizeCategory(r.product?.category) === dept);
-            deptItems.sort((a, b) => b.velocityPerDay - a.velocityPerDay);
-
-            const candidate = deptItems.find((it) => !allocatedIds.has(String(it.product._id))) || deptItems[0];
-            if (candidate) {
-                cupboardFastMovers.push(candidate);
-                allocatedIds.add(String(candidate.product._id));
-            }
+        // Return snapshot with metadata
+        res.json({
+            recommendations: snapshot.recommendations,
+            lastCalculatedAt: snapshot.lastCalculatedAt,
+            calculatedBy: snapshot.calculatedBy,
+            pairCount: snapshot.recommendations.length,
+            isCached: true,
         });
-
-        // Exactly 8 pairs: 3 Hero Runway + 5 Cupboard Bays
-        const final8FastMovers = [...heroRunwayFastMovers, ...cupboardFastMovers].slice(0, 8);
-
-        const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(final8FastMovers, useAI);
-        res.json(recommendations);
     } catch (err) {
-        console.error("Error generating recommendations, falling back:", err);
+        console.error("Error retrieving recommendations snapshot:", err);
         try {
             const products = await Product_1.default.find().limit(5);
             const fallback = products.map((p) => ({
@@ -72,10 +103,74 @@ exports.getRecommendations = (0, express_async_handler_1.default)(async (req, re
                 similarProducts: [],
                 reason: `${p.name} recommended based on current store demand.`,
             }));
-            res.json(fallback);
+            res.json({
+                recommendations: fallback,
+                lastCalculatedAt: new Date(),
+                calculatedBy: { name: "System Fallback", role: "system" },
+                pairCount: fallback.length,
+                isCached: true,
+            });
         } catch {
-            res.json([]);
+            res.json({ recommendations: [] });
         }
+    }
+});
+
+/**
+ * POST /api/recommendations/recalculate
+ * RESTRICTED: Admin and Store Manager only!
+ * Triggers a fresh sales velocity analysis and Groq AI recommendation computation,
+ * saving the new snapshot to MongoDB Atlas.
+ */
+exports.recalculateRecommendations = (0, express_async_handler_1.default)(async (req, res) => {
+    // Defense-in-depth role check
+    if (!req.user || (req.user.role !== "admin" && req.user.role !== "manager")) {
+        return res.status(403).json({
+            message: "Forbidden: Only Store Managers and Administrators can trigger recommendation recalculations. Staff users have read-only access.",
+        });
+    }
+
+    try {
+        const useAI = req.query.ai !== "false" && req.body?.ai !== false;
+        console.log(`[Recommendations] Manual recalculation triggered by ${req.user.name} (${req.user.role}) with AI=${useAI}`);
+        
+        const freshRecs = await generateRecommendationsCalculation(useAI);
+
+        const snapshot = await RecommendationSnapshot_1.default.create({
+            recommendations: freshRecs,
+            lastCalculatedAt: new Date(),
+            calculatedBy: {
+                userId: req.user.id || req.user._id,
+                name: req.user.name || "Manager",
+                role: req.user.role,
+            },
+            useAI,
+            pairCount: freshRecs.length,
+        });
+
+        // Broadcast realtime update to open clients
+        try {
+            const io = (0, sockets_1.getIO)();
+            if (io) {
+                io.emit("recommendations:recalculated", {
+                    lastCalculatedAt: snapshot.lastCalculatedAt,
+                    calculatedBy: snapshot.calculatedBy,
+                    pairCount: snapshot.pairCount,
+                });
+            }
+        } catch {}
+
+        res.json({
+            message: "Recommendations successfully recalculated and saved to MongoDB.",
+            recommendations: snapshot.recommendations,
+            lastCalculatedAt: snapshot.lastCalculatedAt,
+            calculatedBy: snapshot.calculatedBy,
+            pairCount: snapshot.recommendations.length,
+            isCached: false,
+        });
+    } catch (err) {
+        console.error("Error recalculating recommendations:", err);
+        res.status(500).json({ message: "Failed to recalculate recommendations: " + (err.message || "") });
     }
 });
 exports.getSimilarForProduct = (0, express_async_handler_1.default)(async (req, res) => {

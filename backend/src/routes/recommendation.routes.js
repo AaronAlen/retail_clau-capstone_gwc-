@@ -2,10 +2,12 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const auth_1 = require("../middleware/auth");
+const role_1 = require("../middleware/role");
 const recommendation_controller_1 = require("../controllers/recommendation.controller");
 const router = (0, express_1.Router)();
 router.use(auth_1.protect);
 router.get("/", recommendation_controller_1.getRecommendations);
+router.post("/recalculate", (0, role_1.authorize)("admin", "manager"), recommendation_controller_1.recalculateRecommendations);
 router.get("/planogram", recommendation_controller_1.getPlanogramState);
 router.post("/apply-planogram", recommendation_controller_1.applyPlanogram);
 router.post("/floor-swap", recommendation_controller_1.executeFloorSwap);

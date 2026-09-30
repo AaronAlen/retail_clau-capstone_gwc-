@@ -429,10 +429,24 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     };
 
     const lifts = ["+84%", "+76%", "+72%", "+68%", "+64%"];
+
+    // Filter specifically for the 5 In-Aisle Cupboard Bays (Pairs 4 to 8, indices 3 to 7)
+    // to ensure each cupboard receives its dedicated 4-partner cross-cupboard recommendation
+    const cupboardRecs = (recommendations || []).filter(
+      (r, rIdx) => r.pairType === "cupboard_bay" || (typeof r.pairIndex === "number" ? r.pairIndex >= 3 : rIdx >= 3)
+    );
+
     const results = storeDepartments.map((dept, idx) => {
-      const matchingRec = (recommendations || []).find(
-        (r) => normalizeCat(r.sourceProduct?.category) === dept
-      );
+      const matchingRec =
+        cupboardRecs.find((r) => normalizeCat(r.sourceProduct?.category) === dept) ||
+        cupboardRecs[idx] ||
+        (recommendations || []).find(
+          (r, rIdx) => (r.pairType === "cupboard_bay" || rIdx >= 3) && normalizeCat(r.sourceProduct?.category) === dept
+        ) ||
+        (recommendations || []).find(
+          (r) => normalizeCat(r.sourceProduct?.category) === dept
+        );
+
       if (matchingRec && matchingRec.sourceProduct) {
         const topPartner = matchingRec.similarProducts?.[0] || curatedDefaultPairs[idx].partner;
         const validSimilar = (matchingRec.similarProducts && matchingRec.similarProducts.length > 0)

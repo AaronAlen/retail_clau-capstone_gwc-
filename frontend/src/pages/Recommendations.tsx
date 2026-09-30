@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
-import { fetchRecommendations } from "../store/slices/recommendationSlice";
+import { fetchRecommendations, recalculateRecommendations } from "../store/slices/recommendationSlice";
 import { getProductImage } from "../utils/productImages";
 import { QuickSaleModal } from "../components/QuickSaleModal";
 import { Product } from "../store/slices/productSlice";
@@ -19,6 +19,11 @@ import {
   Flame,
   Zap,
   Filter,
+  RefreshCw,
+  Lock,
+  Database,
+  ShieldCheck,
+  Clock,
 } from "lucide-react";
 import { buildPlanogramCoordPayload, getPopularSpotByIndex } from "../utils/showroomCoordinates";
 import { useToast } from "../context/ToastContext";
@@ -37,16 +42,46 @@ const Recommendations: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { showToast } = useToast();
-  const { items, loading } = useSelector((state: RootState) => state.recommendations);
+  const { user } = useSelector((state: RootState) => state.auth);
+  const { items, loading, recalculating, lastCalculatedAt, calculatedBy } = useSelector((state: RootState) => state.recommendations);
   const [useAI, setUseAI] = useState(true);
   const [sellingProduct, setSellingProduct] = useState<Product | null>(null);
   const [swappingId, setSwappingId] = useState<string | null>(null);
   const [activePairIndex, setActivePairIndex] = useState(0);
   const [filterMode, setFilterMode] = useState<"all" | "hero" | "cupboard">("all");
 
+  const canRecalculate = user?.role === "admin" || user?.role === "manager";
+
   useEffect(() => {
     dispatch(fetchRecommendations(useAI));
-  }, [dispatch, useAI]);
+  }, [dispatch]);
+
+  const handleTriggerRecalculate = async () => {
+    if (!canRecalculate) {
+      showToast("Access Restricted: Only Managers and Admins can recalculate recommendations.", "error");
+      return;
+    }
+    try {
+      await dispatch(recalculateRecommendations(useAI)).unwrap();
+      showToast("✨ Fresh 8 showroom pairs recalculated via Groq AI & saved to MongoDB Atlas!", "success");
+    } catch (err: any) {
+      showToast("Failed to recalculate: " + (err || "Check network/permissions"), "error");
+    }
+  };
+
+  const formattedTime = useMemo(() => {
+    if (!lastCalculatedAt) return "Initial Snapshot";
+    try {
+      const d = new Date(lastCalculatedAt);
+      return (
+        d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true }) +
+        ", " +
+        d.toLocaleDateString([], { month: "short", day: "numeric" })
+      );
+    } catch {
+      return "Saved Snapshot";
+    }
+  }, [lastCalculatedAt]);
 
   // Filter recommendations based on tab selection
   const filteredItems = useMemo(() => {
@@ -131,6 +166,49 @@ const Recommendations: React.FC = () => {
               Live LLM
             </span>
           </label>
+        </div>
+      </div>
+
+      {/* 🌟 Storage & RBAC Status Banner */}
+      <div className="bg-[#FAF5EE] border border-[#E5D7BE] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+        <div className="flex flex-wrap items-center gap-3 text-xs text-stone-700">
+          <span className="flex items-center gap-1.5 font-bold bg-white px-2.5 py-1 rounded-lg border border-[#E5D7BE] text-emerald-800">
+            <Database className="w-3.5 h-3.5 text-emerald-600" />
+            <span>Stored in MongoDB Atlas: <strong className="font-black text-stone-900">recommendationsnapshots</strong></span>
+          </span>
+
+          <span className="flex items-center gap-1.5 font-semibold text-stone-600 bg-white/60 px-2.5 py-1 rounded-lg border border-stone-200">
+            <Clock className="w-3.5 h-3.5 text-orange-600" />
+            <span>Last Calculated: <strong className="text-stone-800">{formattedTime}</strong></span>
+          </span>
+
+          <span className="flex items-center gap-1.5 font-semibold text-stone-600 bg-white/60 px-2.5 py-1 rounded-lg border border-stone-200">
+            <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+            <span>By: <strong className="text-stone-800">{calculatedBy?.name || "System"}</strong> ({calculatedBy?.role?.toUpperCase() || "ADMIN"})</span>
+          </span>
+        </div>
+
+        <div>
+          {canRecalculate ? (
+            <button
+              onClick={handleTriggerRecalculate}
+              disabled={recalculating}
+              className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm transition-all disabled:opacity-50 cursor-pointer"
+              title="Only Manager and Admin can trigger a fresh sales velocity recalculation"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${recalculating ? "animate-spin" : ""}`} />
+              <span>{recalculating ? "Recalculating with Groq AI..." : "Recalculate Recommendations"}</span>
+              <span className="text-[9px] bg-white/20 px-1.5 py-0.5 rounded font-black uppercase tracking-wider">
+                {user?.role} Exclusive
+              </span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-2 bg-stone-100 text-stone-600 border border-stone-200 text-xs px-3.5 py-2 rounded-xl font-medium">
+              <Lock className="w-3.5 h-3.5 text-stone-400" />
+              <span>Recalculation Restricted to Manager/Admin</span>
+              <span className="text-[10px] bg-stone-200 text-stone-700 px-1.5 py-0.5 rounded font-bold uppercase">Staff Read-Only</span>
+            </div>
+          )}
         </div>
       </div>
 

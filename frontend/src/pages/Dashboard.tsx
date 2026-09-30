@@ -102,9 +102,12 @@ const Dashboard: React.FC = () => {
       });
 
     // 2. Fetch AI Recommendations asynchronously in the background (Non-blocking)
-    api.get<Recommendation[]>("/recommendations?ai=true")
+    api.get<any>("/recommendations?ai=true")
       .then((recRes) => {
-        setRecommendations(recRes.data);
+        const list = Array.isArray(recRes.data)
+          ? recRes.data
+          : (recRes.data?.recommendations || []);
+        setRecommendations(list);
       })
       .catch((err) => {
         console.error("Failed to load AI recommendations:", err);
