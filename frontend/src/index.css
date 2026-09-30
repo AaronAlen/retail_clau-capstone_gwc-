@@ -34,37 +34,65 @@ body {
   @apply bg-rose-100/90 text-rose-800 border border-rose-300/80 font-bold text-xs px-2.5 py-1 rounded-full shadow-sm;
 }
 
-/* Sleek Luxury Translucent Frosted Glassmorphism System for 3D Viewport */
+/* Sleek Luxury Translucent Frosted Glassmorphism System for 3D Viewport (Crisp, Subtle Blur) */
 .glass-panel {
-  background: rgba(18, 14, 24, 0.55) !important;
-  backdrop-filter: blur(20px) saturate(180%) !important;
-  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  background: rgba(18, 14, 24, 0.60) !important;
+  backdrop-filter: blur(8px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
   border: 1px solid rgba(245, 158, 11, 0.35) !important;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
 }
 
 .glass-pill {
-  background: rgba(28, 22, 36, 0.60) !important;
-  backdrop-filter: blur(16px) saturate(160%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(160%) !important;
+  background: rgba(28, 22, 36, 0.62) !important;
+  backdrop-filter: blur(8px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(140%) !important;
   border: 1px solid rgba(245, 158, 11, 0.28) !important;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
 }
 
 .glass-badge-amber {
   background: rgba(254, 243, 199, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border: 1.5px solid rgba(245, 158, 11, 0.85) !important;
   box-shadow: 0 2px 12px rgba(245, 158, 11, 0.25) !important;
 }
 
 .glass-badge-sky {
   background: rgba(240, 249, 255, 0.95) !important;
-  backdrop-filter: blur(16px) !important;
-  -webkit-backdrop-filter: blur(16px) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
   border: 1.5px solid rgba(14, 165, 233, 0.85) !important;
   box-shadow: 0 2px 12px rgba(14, 165, 233, 0.25) !important;
+}
+
+/* 🌟 LUXURY UNIFIED GLASSMORPHISM SEARCH INPUT (Matches .glass-panel with razor-sharp legible text) */
+.glass-search-input {
+  background: rgba(18, 14, 24, 0.60) !important;
+  backdrop-filter: blur(8px) saturate(150%) !important;
+  -webkit-backdrop-filter: blur(8px) saturate(150%) !important;
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+
+.glass-search-input::placeholder {
+  color: rgba(245, 158, 11, 0.75) !important;
+  font-weight: 600 !important;
+}
+
+.glass-search-input:hover {
+  background: rgba(26, 20, 36, 0.72) !important;
+  border: 1px solid rgba(245, 158, 11, 0.60) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.50), 0 0 16px rgba(245, 158, 11, 0.20), inset 0 1px 1px rgba(255, 255, 255, 0.25) !important;
+}
+
+.glass-search-input:focus {
+  background: rgba(20, 16, 28, 0.85) !important;
+  border: 1px solid rgba(245, 158, 11, 0.90) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 20px rgba(245, 158, 11, 0.30), inset 0 1px 1px rgba(255, 255, 255, 0.35) !important;
+  color: #ffffff !important;
 }
 
 /* 🌟 LUXURY CUSTOM SCROLLBAR SYSTEM (Eliminates ugly browser default scrollbars everywhere) */

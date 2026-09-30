@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense, lazy } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import api from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 import { Product } from "../store/slices/productSlice";
-import { Store3DVisualizer } from "../components/Store3DVisualizer";
 import { QuickSaleModal } from "../components/QuickSaleModal";
-import { TrendingUp, ShoppingBag, Sparkles, Layers, Calendar, ShoppingCart } from "lucide-react";
+import { TrendingUp, ShoppingBag, Sparkles, Layers, Calendar, ShoppingCart, Box, Loader2 } from "lucide-react";
+
+// Lazy-load 3D Visualizer for instantaneous initial dashboard paint
+const Store3DVisualizer = lazy(() => import("../components/Store3DVisualizer"));
 
 interface VelocityRow {
   product: Product;
@@ -57,6 +59,25 @@ const StatCard = ({
   </div>
 );
 
+// High-performance Showroom Skeleton Loader
+const ShowroomSkeleton = () => (
+  <div className="w-full h-[680px] rounded-2xl bg-gradient-to-b from-stone-900 to-stone-950 border border-stone-800 flex flex-col items-center justify-center p-8 relative overflow-hidden shadow-2xl">
+    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-orange-500/10 via-stone-900/50 to-stone-950"></div>
+    <div className="relative z-10 flex flex-col items-center gap-4 text-center">
+      <div className="w-16 h-16 rounded-2xl bg-stone-800/80 border border-orange-500/30 flex items-center justify-center shadow-lg shadow-orange-500/10 animate-pulse">
+        <Box className="w-8 h-8 text-orange-400 animate-spin" style={{ animationDuration: "8s" }} />
+      </div>
+      <div>
+        <h3 className="text-base font-bold text-white tracking-wide">Initializing 3D Showroom Architecture</h3>
+        <p className="text-xs text-stone-400 mt-1 flex items-center justify-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-orange-400" />
+          Preparing luxury department cupboards & catalog planogram...
+        </p>
+      </div>
+    </div>
+  </div>
+);
+
 const Dashboard: React.FC = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
@@ -64,17 +85,26 @@ const Dashboard: React.FC = () => {
   const [windowDays, setWindowDays] = useState(7);
   const [selectedProductForSale, setSelectedProductForSale] = useState<Product | null>(null);
 
-  const load = async () => {
-    try {
-      const [sumRes, recRes] = await Promise.all([
-        api.get<Summary>("/analytics/summary"),
-        api.get<Recommendation[]>("/recommendations?ai=true"),
-      ]);
-      setSummary(sumRes.data);
-      setRecommendations(recRes.data);
-    } finally {
-      setLoading(false);
-    }
+  const load = () => {
+    // 1. Fetch Fast Analytics Summary first (Instant UI Paint in ~60ms)
+    api.get<Summary>("/analytics/summary")
+      .then((sumRes) => {
+        setSummary(sumRes.data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load analytics summary:", err);
+        setLoading(false);
+      });
+
+    // 2. Fetch AI Recommendations asynchronously in the background (Non-blocking)
+    api.get<Recommendation[]>("/recommendations?ai=true")
+      .then((recRes) => {
+        setRecommendations(recRes.data);
+      })
+      .catch((err) => {
+        console.error("Failed to load AI recommendations:", err);
+      });
   };
 
   useEffect(() => {
@@ -83,7 +113,19 @@ const Dashboard: React.FC = () => {
 
   useSocket(() => load());
 
-  if (loading || !summary) return <p className="px-8 text-stone-500">Loading retail intelligence dashboard...</p>;
+  if (loading || !summary) {
+    return (
+      <div className="px-8 pb-12 space-y-6">
+        <div className="h-12 w-72 bg-stone-200/70 rounded-xl animate-pulse"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-28 bg-white border border-[#E5D7BE] rounded-xl p-4 animate-pulse shadow-sm"></div>
+          ))}
+        </div>
+        <ShowroomSkeleton />
+      </div>
+    );
+  }
 
   const chartData = summary.fastMovers.map((f) => ({
     name: f.product.name.length > 14 ? f.product.name.slice(0, 14) + "…" : f.product.name,
@@ -91,7 +133,7 @@ const Dashboard: React.FC = () => {
   }));
 
   return (
-    <div className="px-8 pb-12 space-y-6">
+    <div className="px-3.5 sm:px-6 lg:px-8 pb-12 space-y-6">
       {/* Top Banner & Date Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -147,10 +189,12 @@ const Dashboard: React.FC = () => {
 
       {/* 🌟 3D RETAIL STORE FLOOR PLAN VISUALIZER */}
       <div className="space-y-3">
-        <Store3DVisualizer
-          fastMovers={summary.fastMovers}
-          recommendations={recommendations}
-        />
+        <Suspense fallback={<ShowroomSkeleton />}>
+          <Store3DVisualizer
+            fastMovers={summary.fastMovers}
+            recommendations={recommendations}
+          />
+        </Suspense>
       </div>
 
       {/* Velocity Bar Chart */}

@@ -337,7 +337,7 @@ export const AICopilotDrawer: React.FC<AICopilotDrawerProps> = ({ isOpen, onClos
     <div className="fixed inset-0 w-screen h-screen z-[9999] flex justify-end overflow-hidden">
       {/* 100% Full Viewport Backdrop with Deep Blur and Dimming */}
       <div
-        className="fixed inset-0 w-full h-full bg-stone-950/60 backdrop-blur-md transition-opacity duration-300"
+        className="fixed inset-0 w-full h-full bg-stone-950/60 backdrop-blur-sm transition-opacity duration-300"
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();

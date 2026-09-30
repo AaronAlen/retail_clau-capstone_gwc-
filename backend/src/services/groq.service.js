@@ -18,6 +18,7 @@ const explainRecommendation = async (source, similar, velocityPerDay) => {
         .join(", ") || "none found"}. In 2-3 sentences, explain WHY placing these nearby could lift sales, in plain business language for a store manager.`;
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
+        signal: AbortSignal.timeout(3500),
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${apiKey}`,

@@ -22,41 +22,41 @@ export interface PopularSpot {
   neonColorHex: string;
 }
 
-// 🌟 3 SPACIOUS & PROMINENT HERO DISPLAY STATIONS (Center Runway & Promenades)
+// 🌟 3 HERO DISPLAY STATIONS (Directly mapped to 3 Runway Mannequins on the Center Deck)
 export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
   {
     id: "spot-1",
     index: 0,
-    name: "Hero Station 1: Prime Center Runway",
+    name: "Hero Station 1: Cashmere Elegance Runway",
     code: "HERO 1",
-    badge: "🌟 #1 CENTER RUNWAY",
-    anchorCoords: { x: -1.2, y: 1.6, z: 1.8, zone: "Hero Runway Station 1 (Anchor Podium)" },
-    swappedCoords: { x: 1.2, y: 1.6, z: 1.8, zone: "Hero Runway Station 1 (Co-Purchase Podium)" },
-    podiumCoords: { x: 0.0, y: 0.0, z: 1.8 },
+    badge: "🌟 HERO 1",
+    anchorCoords: { x: -2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 1 (West Mannequin)" },
+    swappedCoords: { x: -2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 1 (West Mannequin)" },
+    podiumCoords: { x: -2.8, y: 0.18, z: 2.0 },
     color: 0xf59e0b, // Amber Gold
     neonColorHex: "#f59e0b",
   },
   {
     id: "spot-2",
     index: 1,
-    name: "Hero Station 2: West Promenade",
+    name: "Hero Station 2: Prime Center VIP Runway",
     code: "HERO 2",
-    badge: "✨ #2 WEST PROMENADE",
-    anchorCoords: { x: -8.0, y: 1.6, z: 1.8, zone: "Hero Station 2: West Promenade (Anchor)" },
-    swappedCoords: { x: -5.6, y: 1.6, z: 1.8, zone: "Hero Station 2: West Promenade (Pair)" },
-    podiumCoords: { x: -6.8, y: 0.0, z: 1.8 },
+    badge: "👑 HERO 2 (VIP)",
+    anchorCoords: { x: 0.0, y: 1.9, z: 1.45, zone: "Hero Runway Station 2 (VIP Center Mannequin)" },
+    swappedCoords: { x: 0.0, y: 1.9, z: 1.45, zone: "Hero Runway Station 2 (VIP Center Mannequin)" },
+    podiumCoords: { x: 0.0, y: 0.28, z: 1.45 },
     color: 0x38bdf8, // Sky Blue
     neonColorHex: "#38bdf8",
   },
   {
     id: "spot-3",
     index: 2,
-    name: "Hero Station 3: East Promenade",
+    name: "Hero Station 3: Streetwear Trend Runway",
     code: "HERO 3",
-    badge: "⚡ #3 EAST PROMENADE",
-    anchorCoords: { x: 5.6, y: 1.6, z: 1.8, zone: "Hero Station 3: East Promenade (Anchor)" },
-    swappedCoords: { x: 8.0, y: 1.6, z: 1.8, zone: "Hero Station 3: East Promenade (Pair)" },
-    podiumCoords: { x: 6.8, y: 0.0, z: 1.8 },
+    badge: "⚡ HERO 3",
+    anchorCoords: { x: 2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 3 (East Mannequin)" },
+    swappedCoords: { x: 2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 3 (East Mannequin)" },
+    podiumCoords: { x: 2.8, y: 0.18, z: 2.0 },
     color: 0xa855f7, // Royal Purple
     neonColorHex: "#a855f7",
   },
@@ -73,9 +73,18 @@ export const HERO_RUNWAY_SWAPPED: Coordinate3D = POPULAR_FEATURE_SPOTS[0].swappe
 // Fallback deterministic coordinate computation if product does not yet have DB coordinates
 export const computeFallbackShelfLocation = (product: Product): Coordinate3D => {
   const cat = (product.category || "").toLowerCase();
-  // Extract number from SKU (e.g. SKU-1001 -> 0, SKU-1013 -> 0)
-  const skuNum = parseInt((product.sku || "").replace(/\D/g, ""), 10);
-  const indexInCat = !isNaN(skuNum) ? (skuNum - 1) % 12 : 0;
+  // Extract number from SKU (e.g. SKU-1001 -> 0, SKU-1013 -> 0) or #ID
+  let indexInCat = 0;
+  const nameMatch = (product.name || "").match(/#(\d+)/);
+  if (nameMatch && nameMatch[1]) {
+    const id = parseInt(nameMatch[1], 10);
+    indexInCat = (id - 1) % 12;
+  } else {
+    const skuNum = parseInt((product.sku || "").replace(/\D/g, ""), 10);
+    if (!isNaN(skuNum)) {
+      indexInCat = skuNum >= 1001 ? (skuNum - 1001) % 12 : (skuNum - 1) % 12;
+    }
+  }
 
   // 1. Jackets (West Wing, x center: -12.5, z: -3.8)
   if (cat.includes("jacket")) {
@@ -146,18 +155,37 @@ export const computeFallbackShelfLocation = (product: Product): Coordinate3D => 
   };
 };
 
+export const VALID_CUPBOARD_ZONES = [
+  "West Wing: Executive Outerwear Cupboard",
+  "North-West: Formal Shirts Wardrobe",
+  "East Wing: Premium Denim Cupboard",
+  "North-East: Streetwear Tees Cupboard",
+  "Center Arcade: Footwear Vitrine Gallery",
+];
+
 export const getProductShelfLocation = (product: Product | undefined): Coordinate3D => {
   if (!product) {
     return { x: 12.0, y: 2.2, z: -3.8, zone: "East Wing: Premium Denim Cupboard", shelf: "Middle Shelf", slot: 1 };
   }
 
-  // Check if real 3D coordinates are loaded from MongoDB
-  if (product.coordinates3D && typeof product.coordinates3D.x === "number" && typeof product.coordinates3D.y === "number") {
+  // Canonical cupboard home shelf slot check:
+  // ONLY accept coordinates that are strictly within the 5 valid showroom cupboards,
+  // not marked as relocated, and NOT located in the center floor runway area!
+  if (
+    product.coordinates3D &&
+    typeof product.coordinates3D.x === "number" &&
+    typeof product.coordinates3D.y === "number" &&
+    typeof product.coordinates3D.z === "number" &&
+    !product.coordinates3D.isRelocated &&
+    VALID_CUPBOARD_ZONES.includes(product.coordinates3D.zone || "") &&
+    // Ensure coordinates are not in the center runway/floor area (|x| < 7 && |z| < 4)
+    !(Math.abs(product.coordinates3D.x) < 7 && Math.abs(product.coordinates3D.z) < 4)
+  ) {
     return {
       x: product.coordinates3D.x,
       y: product.coordinates3D.y,
       z: product.coordinates3D.z,
-      zone: product.coordinates3D.zone || "Showroom Department",
+      zone: product.coordinates3D.zone || "Showroom Cupboard",
       shelf: product.coordinates3D.shelf || "Display Shelf",
       slot: product.coordinates3D.slot || 1,
     };

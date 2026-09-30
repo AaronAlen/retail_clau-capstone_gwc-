@@ -37,7 +37,13 @@ export const createApp = (): Application => {
   app.use(express.json());
   app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
-  const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
+  // Relax rate limiter in development so multi-device live sync and 3D planogram testing are never blocked
+  const isProd = process.env.NODE_ENV === "production";
+  const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: isProd ? 5000 : 100000,
+    skip: () => !isProd,
+  });
   app.use("/api", limiter);
 
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));

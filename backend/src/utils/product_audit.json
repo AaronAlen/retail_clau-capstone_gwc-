@@ -1,0 +1,482 @@
+[
+  {
+    "id": 1,
+    "sku": "SKU-1001",
+    "name": "Tailored Double-Breasted Blazer #1",
+    "category": "Jackets",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673136/velocity_retail/products/product-1.jpg"
+  },
+  {
+    "id": 2,
+    "sku": "SKU-1002",
+    "name": "Cashmere Single-Breasted Overcoat #2",
+    "category": "Jackets",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673138/velocity_retail/products/product-2.jpg"
+  },
+  {
+    "id": 3,
+    "sku": "SKU-1003",
+    "name": "Savile Row Velvet Evening Blazer #3",
+    "category": "Jackets",
+    "color": "Maroon",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673139/velocity_retail/products/product-3.jpg"
+  },
+  {
+    "id": 4,
+    "sku": "SKU-1004",
+    "name": "Minimalist Italian Wool Trench Coat #4",
+    "category": "Jackets",
+    "color": "Camel",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673141/velocity_retail/products/product-4.jpg"
+  },
+  {
+    "id": 5,
+    "sku": "SKU-1005",
+    "name": "Structured Executive Tuxedo Jacket #5",
+    "category": "Jackets",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673142/velocity_retail/products/product-5.jpg"
+  },
+  {
+    "id": 6,
+    "sku": "SKU-1006",
+    "name": "Military Field Safari Jacket #6",
+    "category": "Jackets",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673143/velocity_retail/products/product-6.jpg"
+  },
+  {
+    "id": 7,
+    "sku": "SKU-1007",
+    "name": "Deconstructed Linen Summer Blazer #7",
+    "category": "Jackets",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673145/velocity_retail/products/product-7.jpg"
+  },
+  {
+    "id": 8,
+    "sku": "SKU-1008",
+    "name": "Classic Melton Wool Peacoat #8",
+    "category": "Jackets",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673147/velocity_retail/products/product-8.jpg"
+  },
+  {
+    "id": 9,
+    "sku": "SKU-1009",
+    "name": "Pinstripe Peak Lapel Suit Jacket #9",
+    "category": "Jackets",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673148/velocity_retail/products/product-9.jpg"
+  },
+  {
+    "id": 10,
+    "sku": "SKU-1010",
+    "name": "Suede Trimmed Bomber Jacket #10",
+    "category": "Jackets",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673150/velocity_retail/products/product-10.jpg"
+  },
+  {
+    "id": 11,
+    "sku": "SKU-1011",
+    "name": "Quilted Heritage Hunting Jacket #11",
+    "category": "Jackets",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673151/velocity_retail/products/product-11.jpg"
+  },
+  {
+    "id": 12,
+    "sku": "SKU-1012",
+    "name": "Slim Fit Wool Tuxedo Blazer #12",
+    "category": "Jackets",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673152/velocity_retail/products/product-12.jpg"
+  },
+  {
+    "id": 13,
+    "sku": "SKU-1013",
+    "name": "Japanese Selvedge Raw Denim #13",
+    "category": "Jeans",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673154/velocity_retail/products/product-13.jpg"
+  },
+  {
+    "id": 14,
+    "sku": "SKU-1014",
+    "name": "Tailored Slim Tapered Denim #14",
+    "category": "Jeans",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673155/velocity_retail/products/product-14.jpg"
+  },
+  {
+    "id": 15,
+    "sku": "SKU-1015",
+    "name": "Ecru Washed Minimalist Chino Jeans #15",
+    "category": "Jeans",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673158/velocity_retail/products/product-15.jpg"
+  },
+  {
+    "id": 16,
+    "sku": "SKU-1016",
+    "name": "Deep Indigo Stretch Trousers #16",
+    "category": "Jeans",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673159/velocity_retail/products/product-16.jpg"
+  },
+  {
+    "id": 17,
+    "sku": "SKU-1017",
+    "name": "Vintage Faded Wash Straight Leg #17",
+    "category": "Jeans",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673161/velocity_retail/products/product-17.jpg"
+  },
+  {
+    "id": 18,
+    "sku": "SKU-1018",
+    "name": "Olive Garment-Dyed Utility Denim #18",
+    "category": "Jeans",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673162/velocity_retail/products/product-18.jpg"
+  },
+  {
+    "id": 19,
+    "sku": "SKU-1019",
+    "name": "Midnight Rinse Slim Executive Jean #19",
+    "category": "Jeans",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673163/velocity_retail/products/product-19.jpg"
+  },
+  {
+    "id": 20,
+    "sku": "SKU-1020",
+    "name": "Burgundy Tinted Raw Stretch Denim #20",
+    "category": "Jeans",
+    "color": "Maroon",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673164/velocity_retail/products/product-20.jpg"
+  },
+  {
+    "id": 21,
+    "sku": "SKU-1021",
+    "name": "Sandstone Washed Relaxed Denim #21",
+    "category": "Jeans",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673166/velocity_retail/products/product-21.jpg"
+  },
+  {
+    "id": 22,
+    "sku": "SKU-1022",
+    "name": "Heavyweight 14oz Heritage Denim #22",
+    "category": "Jeans",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673167/velocity_retail/products/product-22.jpg"
+  },
+  {
+    "id": 23,
+    "sku": "SKU-1023",
+    "name": "Acid Wash Streetwear Relaxed Denim #23",
+    "category": "Jeans",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790676384/velocity_retail/products/product-23.jpg"
+  },
+  {
+    "id": 24,
+    "sku": "SKU-1024",
+    "name": "Clean Hem Premium Black Trousers #24",
+    "category": "Jeans",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673169/velocity_retail/products/product-24.jpg"
+  },
+  {
+    "id": 25,
+    "sku": "SKU-1025",
+    "name": "Egyptian Cotton Royal Oxford Shirt #25",
+    "category": "Shirts",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673171/velocity_retail/products/product-25.jpg"
+  },
+  {
+    "id": 26,
+    "sku": "SKU-1026",
+    "name": "Spread Collar Executive Poplin Shirt #26",
+    "category": "Shirts",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673172/velocity_retail/products/product-26.jpg"
+  },
+  {
+    "id": 27,
+    "sku": "SKU-1027",
+    "name": "Natural Washed French Linen Shirt #27",
+    "category": "Shirts",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673173/velocity_retail/products/product-27.jpg"
+  },
+  {
+    "id": 28,
+    "sku": "SKU-1028",
+    "name": "Burgundy Micro-Check Formal Shirt #28",
+    "category": "Shirts",
+    "color": "Maroon",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673175/velocity_retail/products/product-28.jpg"
+  },
+  {
+    "id": 29,
+    "sku": "SKU-1029",
+    "name": "Olive Garment Washed Twill Shirt #29",
+    "category": "Shirts",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673176/velocity_retail/products/product-29.jpg"
+  },
+  {
+    "id": 30,
+    "sku": "SKU-1030",
+    "name": "Crisp Cutaway Collar Dress Shirt #30",
+    "category": "Shirts",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673177/velocity_retail/products/product-30.jpg"
+  },
+  {
+    "id": 31,
+    "sku": "SKU-1031",
+    "name": "Charcoal Herringbone Weave Shirt #31",
+    "category": "Shirts",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673179/velocity_retail/products/product-31.jpg"
+  },
+  {
+    "id": 32,
+    "sku": "SKU-1032",
+    "name": "Midnight Navy Luxury Sateen Shirt #32",
+    "category": "Shirts",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673180/velocity_retail/products/product-32.jpg"
+  },
+  {
+    "id": 33,
+    "sku": "SKU-1033",
+    "name": "Sand Brushed Cotton Overshirt #33",
+    "category": "Shirts",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673182/velocity_retail/products/product-33.jpg"
+  },
+  {
+    "id": 34,
+    "sku": "SKU-1034",
+    "name": "Grandad Band-Collar Linen Shirt #34",
+    "category": "Shirts",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673183/velocity_retail/products/product-34.jpg"
+  },
+  {
+    "id": 35,
+    "sku": "SKU-1035",
+    "name": "Dark Olive Utility Workshirt #35",
+    "category": "Shirts",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673185/velocity_retail/products/product-35.jpg"
+  },
+  {
+    "id": 36,
+    "sku": "SKU-1036",
+    "name": "Sleek Black Concealed Placket Shirt #36",
+    "category": "Shirts",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673186/velocity_retail/products/product-36.jpg"
+  },
+  {
+    "id": 37,
+    "sku": "SKU-1037",
+    "name": "Heavyweight Supima Crewneck Tee #37",
+    "category": "T-Shirts",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673187/velocity_retail/products/product-37.jpg"
+  },
+  {
+    "id": 38,
+    "sku": "SKU-1038",
+    "name": "Mercerized Cotton Luxury T-Shirt #38",
+    "category": "T-Shirts",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673188/velocity_retail/products/product-38.jpg"
+  },
+  {
+    "id": 39,
+    "sku": "SKU-1039",
+    "name": "Minimalist Typography Graphic Tee #39",
+    "category": "T-Shirts",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673190/velocity_retail/products/product-39.jpg"
+  },
+  {
+    "id": 40,
+    "sku": "SKU-1040",
+    "name": "Raw Edge Oversized Studio Tee #40",
+    "category": "T-Shirts",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673191/velocity_retail/products/product-40.jpg"
+  },
+  {
+    "id": 41,
+    "sku": "SKU-1041",
+    "name": "Olive Earth Wash Heavyweight Tee #41",
+    "category": "T-Shirts",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673193/velocity_retail/products/product-41.jpg"
+  },
+  {
+    "id": 42,
+    "sku": "SKU-1042",
+    "name": "Burgundy Signature Chest Print Tee #42",
+    "category": "T-Shirts",
+    "color": "Maroon",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673194/velocity_retail/products/product-42.jpg"
+  },
+  {
+    "id": 43,
+    "sku": "SKU-1043",
+    "name": "Charcoal Pigment-Dyed Relaxed Tee #43",
+    "category": "T-Shirts",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673195/velocity_retail/products/product-43.jpg"
+  },
+  {
+    "id": 44,
+    "sku": "SKU-1044",
+    "name": "Waffle Knit Long Sleeve Thermal Tee #44",
+    "category": "T-Shirts",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673196/velocity_retail/products/product-44.jpg"
+  },
+  {
+    "id": 45,
+    "sku": "SKU-1045",
+    "name": "Deep Navy Embroidered Crest Tee #45",
+    "category": "T-Shirts",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673197/velocity_retail/products/product-45.jpg"
+  },
+  {
+    "id": 46,
+    "sku": "SKU-1046",
+    "name": "Acid Black Street Graphic Tee #46",
+    "category": "T-Shirts",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673198/velocity_retail/products/product-46.jpg"
+  },
+  {
+    "id": 47,
+    "sku": "SKU-1047",
+    "name": "Desert Sand High-Density Pocket Tee #47",
+    "category": "T-Shirts",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673199/velocity_retail/products/product-47.jpg"
+  },
+  {
+    "id": 48,
+    "sku": "SKU-1048",
+    "name": "Vintage Washed Minimalist Crew Tee #48",
+    "category": "T-Shirts",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673201/velocity_retail/products/product-48.jpg"
+  },
+  {
+    "id": 49,
+    "sku": "SKU-1049",
+    "name": "Handcrafted Calfskin Oxford Shoes #49",
+    "category": "Shoes",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673202/velocity_retail/products/product-49.jpg"
+  },
+  {
+    "id": 50,
+    "sku": "SKU-1050",
+    "name": "Italian Suede Penny Loafers #50",
+    "category": "Shoes",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673203/velocity_retail/products/product-50.jpg"
+  },
+  {
+    "id": 51,
+    "sku": "SKU-1051",
+    "name": "Brogue Cap-Toe Derby Shoes #51",
+    "category": "Shoes",
+    "color": "Beige",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673204/velocity_retail/products/product-51.jpg"
+  },
+  {
+    "id": 52,
+    "sku": "SKU-1052",
+    "name": "Burgundy Polished Chelsea Boots #52",
+    "category": "Shoes",
+    "color": "Maroon",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673205/velocity_retail/products/product-52.jpg"
+  },
+  {
+    "id": 53,
+    "sku": "SKU-1053",
+    "name": "Minimalist Leather Low-Top Court Shoes #53",
+    "category": "Shoes",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673207/velocity_retail/products/product-53.jpg"
+  },
+  {
+    "id": 54,
+    "sku": "SKU-1054",
+    "name": "Olive Suede Desert Chukka Boots #54",
+    "category": "Shoes",
+    "color": "Olive",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673208/velocity_retail/products/product-54.jpg"
+  },
+  {
+    "id": 55,
+    "sku": "SKU-1055",
+    "name": "Monk Strap Hand-Burnished Shoes #55",
+    "category": "Shoes",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673209/velocity_retail/products/product-55.jpg"
+  },
+  {
+    "id": 56,
+    "sku": "SKU-1056",
+    "name": "Charcoal Nubuck Driving Loafers #56",
+    "category": "Shoes",
+    "color": "Charcoal",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673210/velocity_retail/products/product-56.jpg"
+  },
+  {
+    "id": 57,
+    "sku": "SKU-1057",
+    "name": "Camel Grain Leather Wingtip Brogues #57",
+    "category": "Shoes",
+    "color": "Camel",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673211/velocity_retail/products/product-57.jpg"
+  },
+  {
+    "id": 58,
+    "sku": "SKU-1058",
+    "name": "Navy Calfskin Slip-on Sneakers #58",
+    "category": "Shoes",
+    "color": "Navy",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673213/velocity_retail/products/product-58.jpg"
+  },
+  {
+    "id": 59,
+    "sku": "SKU-1059",
+    "name": "All-Black Waxed Leather Military Boot #59",
+    "category": "Shoes",
+    "color": "Black",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673215/velocity_retail/products/product-59.jpg"
+  },
+  {
+    "id": 60,
+    "sku": "SKU-1060",
+    "name": "Off-White Platform Cupsole Sneakers #60",
+    "category": "Shoes",
+    "color": "White",
+    "imageUrl": "https://res.cloudinary.com/yqs5ezyx/image/upload/v1790673216/velocity_retail/products/product-60.jpg"
+  }
+]

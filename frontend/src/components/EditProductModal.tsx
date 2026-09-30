@@ -1,4 +1,5 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X, Edit3, Trash2, AlertTriangle, Image as ImageIcon, Upload, Loader2, Cloud } from "lucide-react";
 import { Product } from "../store/slices/productSlice";
 import { getProductImage } from "../utils/productImages";
@@ -36,6 +37,17 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+
+  // Lock background body scroll when modal is open
+  useEffect(() => {
+    if (product) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [product]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -102,9 +114,14 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
 
   const isCloudinary = form.imageUrl?.includes("cloudinary");
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white border border-[#E5D7BE] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl text-stone-900">
+  return createPortal(
+    <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 overflow-y-auto">
+      {/* 100% Full Viewport Backdrop with Deep Blur and Dimming covering top navbar & sidebar */}
+      <div
+        className="fixed inset-0 w-full h-full bg-stone-950/60 backdrop-blur-sm transition-opacity duration-200"
+        onClick={onClose}
+      />
+      <div className="relative z-10 bg-white border border-[#E5D7BE] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl text-stone-900 animate-in fade-in zoom-in-95 duration-200 my-auto">
         <div className="px-6 py-5 border-b border-[#E5D7BE] flex items-center justify-between bg-[#F8F2E6]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-600 flex items-center justify-center">
@@ -325,6 +342,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

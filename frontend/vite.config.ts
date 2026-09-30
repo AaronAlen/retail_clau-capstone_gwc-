@@ -4,10 +4,21 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   server: {
+    host: true, // Expose on local network (0.0.0.0) so mobile/tablets can open via 192.168.x.x
     port: 5173,
     proxy: {
       "/api": "http://localhost:5000",
-      "/socket.io": { target: "http://localhost:5000", ws: true },
+      "/socket.io": {
+        target: "http://localhost:5000",
+        ws: true,
+        changeOrigin: true,
+        rewriteWsOrigin: true,
+        configure: (proxy) => {
+          proxy.on("error", (err: any) => {
+            if (err?.code === "ECONNRESET" || err?.code === "EPIPE") return;
+          });
+        },
+      },
     },
   },
   build: {

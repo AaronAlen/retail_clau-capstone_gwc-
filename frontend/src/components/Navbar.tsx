@@ -4,20 +4,25 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
 import { RootState } from "../store/store";
-import { Bell, Sparkles, LogOut, AlertCircle, ShoppingBag } from "lucide-react";
+import { Bell, Sparkles, LogOut, AlertCircle, Menu } from "lucide-react";
 
 interface NavbarProps {
   title: string;
   onOpenCopilot?: () => void;
   lowStockItems?: Array<{ name: string; stock: number }>;
+  onToggleSidebar?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [] }) => {
+const Navbar: React.FC<NavbarProps> = ({
+  title,
+  onOpenCopilot,
+  lowStockItems = [],
+  onToggleSidebar,
+}) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth.user);
   const [showNotifications, setShowNotifications] = useState(false);
-
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   // Lock body scroll when logout confirmation is open
@@ -32,22 +37,42 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
   }, [showLogoutConfirm]);
 
   return (
-    <header className="flex items-center justify-between px-8 py-4 border-b border-[#E5D7BE] bg-[#F8F3EA]/90 backdrop-blur-2xl sticky top-0 z-40 shadow-sm">
-      <div>
-        <h2 className="text-xl font-extrabold text-stone-900 tracking-tight">{title}</h2>
-        <p className="text-xs text-stone-500 font-medium">Velocity Luxury Intelligence & 3D Merchandising</p>
+    <header className="flex items-center justify-between px-3 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-[#E5D7BE] bg-[#F8F3EA]/90 backdrop-blur-md sticky top-0 z-40 shadow-sm">
+      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        {/* Mobile / Tablet Hamburger Menu Button */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            className="lg:hidden p-2 rounded-xl border border-[#E5D7BE] bg-white text-stone-700 hover:bg-[#F2E8D5] transition-colors shadow-sm cursor-pointer shrink-0"
+            title="Open Menu"
+          >
+            <Menu className="w-5 h-5 text-orange-600" />
+          </button>
+        )}
+
+        <div className="min-w-0">
+          <h2 className="text-base sm:text-xl font-extrabold text-stone-900 tracking-tight truncate">
+            {title}
+          </h2>
+          <p className="text-[10px] sm:text-xs text-stone-500 font-medium truncate hidden xs:block">
+            Velocity Luxury Intelligence & 3D Merchandising
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
         {/* AI Copilot Launch Button */}
         {onOpenCopilot && (
           <button
             onClick={onOpenCopilot}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:brightness-105 shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] border border-orange-400/40 cursor-pointer"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:brightness-105 shadow-md shadow-orange-500/20 transition-all hover:scale-[1.02] border border-orange-400/40 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-white" />
-            <span>AI Copilot</span>
-            <span className="text-[10px] bg-white/20 text-white px-1.5 py-0.5 rounded-full uppercase font-black">Groq</span>
+            <span className="hidden sm:inline">AI Copilot</span>
+            <span className="sm:hidden">AI</span>
+            <span className="text-[9px] sm:text-[10px] bg-white/20 text-white px-1 sm:px-1.5 py-0.5 rounded-full uppercase font-black">
+              Groq
+            </span>
           </button>
         )}
 
@@ -55,7 +80,7 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
         <div className="relative">
           <button
             onClick={() => setShowNotifications((v) => !v)}
-            className="p-2 rounded-xl border border-[#E5D7BE] bg-white text-stone-700 hover:bg-[#F2E8D5] transition-colors relative shadow-sm cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-xl border border-[#E5D7BE] bg-white text-stone-700 hover:bg-[#F2E8D5] transition-colors relative shadow-sm cursor-pointer"
             title="Notifications"
           >
             <Bell className="w-4 h-4" />
@@ -68,12 +93,14 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
 
           {/* Notifications Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-[#E5D7BE] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
+            <div className="absolute right-0 mt-2 w-72 max-w-[90vw] bg-white rounded-2xl shadow-xl border border-[#E5D7BE] p-3 z-50 animate-in fade-in zoom-in-95 duration-150">
               <div className="flex items-center justify-between pb-2 border-b border-[#E5D7BE] mb-2">
                 <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                   <AlertCircle className="w-3.5 h-3.5 text-rose-500" /> Stock Alerts
                 </span>
-                <span className="text-[10px] text-orange-600 font-bold">{lowStockItems.length} urgent</span>
+                <span className="text-[10px] text-orange-600 font-bold">
+                  {lowStockItems.length} urgent
+                </span>
               </div>
               <div className="space-y-1.5 max-h-56 overflow-y-auto">
                 {lowStockItems.length > 0 ? (
@@ -82,7 +109,9 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
                       key={i}
                       className="p-2 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-between text-xs"
                     >
-                      <span className="font-semibold text-rose-900 truncate max-w-[150px]">{item.name}</span>
+                      <span className="font-semibold text-rose-900 truncate max-w-[150px]">
+                        {item.name}
+                      </span>
                       <span className="text-[11px] font-bold text-rose-700 px-2 py-0.5 rounded-full bg-rose-100">
                         {item.stock} left
                       </span>
@@ -98,13 +127,13 @@ const Navbar: React.FC<NavbarProps> = ({ title, onOpenCopilot, lowStockItems = [
 
         {/* User Info & Logout */}
         {user && (
-          <div className="flex items-center gap-2 pl-3 border-l border-[#E5D7BE]">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black text-xs flex items-center justify-center shadow-sm">
+          <div className="flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-[#E5D7BE]">
+            <div className="w-7 h-7 sm:w-8 h-8 rounded-full bg-gradient-to-tr from-orange-500 to-amber-500 text-white font-black text-xs flex items-center justify-center shadow-sm">
               {user.name.charAt(0)}
             </div>
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="p-2 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
               title="Log out"
             >
               <LogOut className="w-4 h-4" />

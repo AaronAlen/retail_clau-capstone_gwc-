@@ -49,7 +49,7 @@ exports.listProducts = (0, express_async_handler_1.default)(async (req, res) => 
         filter.color = color;
     if (search)
         filter.name = { $regex: String(search), $options: "i" };
-    const products = await Product_1.default.find(filter).sort({ createdAt: -1 });
+    const products = await Product_1.default.find(filter).sort({ sku: 1 });
     res.json(products);
 });
 exports.getProduct = (0, express_async_handler_1.default)(async (req, res) => {

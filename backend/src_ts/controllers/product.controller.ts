@@ -10,7 +10,7 @@ export const listProducts = asyncHandler(async (req: AuthRequest, res: Response)
   if (category) filter.category = category;
   if (color) filter.color = color;
   if (search) filter.name = { $regex: String(search), $options: "i" };
-  const products = await Product.find(filter).sort({ createdAt: -1 });
+  const products = await Product.find(filter).sort({ sku: 1 });
   res.json(products);
 });
 

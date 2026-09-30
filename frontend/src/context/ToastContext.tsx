@@ -61,7 +61,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           return (
             <div
               key={toast.id}
-              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl bg-stone-950/90 backdrop-blur-xl border ${borderColor} text-white shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-3`}
+              className={`pointer-events-auto flex items-start gap-3 p-4 rounded-2xl bg-stone-950/90 backdrop-blur-md border ${borderColor} text-white shadow-2xl transition-all duration-300 animate-in fade-in slide-in-from-bottom-3`}
             >
               <div className="shrink-0 mt-0.5">
                 {isSuccess && <CheckCircle2 className={`w-5 h-5 ${iconColor}`} />}

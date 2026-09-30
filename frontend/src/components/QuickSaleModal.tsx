@@ -62,7 +62,7 @@ export const QuickSaleModal: React.FC<QuickSaleModalProps> = ({ product, onClose
     <div className="fixed inset-0 w-screen h-screen z-[9999] flex items-center justify-center p-4 overflow-y-auto">
       {/* 100% Full Viewport Backdrop with Deep Blur and Dimming */}
       <div
-        className="fixed inset-0 w-full h-full bg-stone-950/60 backdrop-blur-md transition-opacity duration-200"
+        className="fixed inset-0 w-full h-full bg-stone-950/60 backdrop-blur-sm transition-opacity duration-200"
         onClick={onClose}
       />
       <div className="relative z-10 bg-white border border-[#E5D7BE] rounded-3xl w-full max-w-md overflow-hidden shadow-2xl text-stone-900 animate-in fade-in zoom-in-95 duration-200">
