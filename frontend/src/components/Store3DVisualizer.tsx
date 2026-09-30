@@ -223,6 +223,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const [isPerformanceMode, setIsPerformanceMode] = useState(false);
   const triggerFlightAnimationRef = useRef<((forward?: boolean, specificProductIds?: string[]) => void) | null>(null);
   const snapToAppliedPositionsRef = useRef<(() => void) | null>(null);
+  const executedFloorItemsRef = useRef<Record<string, boolean>>({});
+  useEffect(() => {
+    executedFloorItemsRef.current = executedFloorItems;
+  }, [executedFloorItems]);
+  const selectedSuggestionIdxRef = useRef(selectedSuggestionIdx);
+  const rebuildGuideRoutesRef = useRef<((idx: number) => void) | null>(null);
+  useEffect(() => {
+    selectedSuggestionIdxRef.current = selectedSuggestionIdx;
+    rebuildGuideRoutesRef.current?.(selectedSuggestionIdx);
+  }, [selectedSuggestionIdx]);
 
   // Search Bar & 3D Scope Pointer States
   const [searchQuery, setSearchQuery] = useState("");
@@ -439,62 +449,68 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     return shoes;
   }, [fastMoverProduct, jackets, shirts, jeans, tshirts, shoes]);
 
-  // Compute 1:1 Mutual Swap Pairs:
-  // Each suggested partner S_i swaps with a strictly unique neighbor D_i in the fast mover's cupboard!
-  const swapPairs = React.useMemo(() => {
-    if (!fastMoverProduct || !allSuggestingPartners.length || !cupboardProducts.length) return [];
-    const suggestedIds = new Set(allSuggestingPartners.map((p) => p._id));
-    const availableNeighbors = cupboardProducts.filter(
-      (p) => p._id !== fastMoverProduct._id && !suggestedIds.has(p._id)
-    );
-
-    // Sort neighbors by slot proximity to fast mover SKU
-    const fSkuNum = parseInt((fastMoverProduct.sku || "").replace(/\D/g, ""), 10) || 0;
-    availableNeighbors.sort((a, b) => {
-      const aSku = parseInt((a.sku || "").replace(/\D/g, ""), 10) || 0;
-      const bSku = parseInt((b.sku || "").replace(/\D/g, ""), 10) || 0;
-      return Math.abs(aSku - fSkuNum) - Math.abs(bSku - fSkuNum);
-    });
-
+  // Compute 1:1 Mutual Swap Pairs for ALL suggestions so animations work across all pairs simultaneously
+  const allCupboardSwapPairs = React.useMemo(() => {
     const colors = [0xc084fc, 0x38bdf8, 0xf43f5e, 0x10b981, 0xfbbf24];
     const colorHexes = ["#c084fc", "#38bdf8", "#f43f5e", "#10b981", "#fbbf24"];
 
-    const usedNeighborIds = new Set<string>();
-    const pairs: Array<{
-      suggested: Product;
-      neighbor: Product;
-      index: number;
-      colorHex: number;
-      colorCss: string;
-    }> = [];
+    return suggestions.map((sug) => {
+      const anchor = sug.anchor || defaultFallbackAnchor;
+      const partner = sug.partner || defaultFallbackPartner;
+      const partners =
+        sug.similarProducts && sug.similarProducts.length > 0
+          ? sug.similarProducts
+          : partner
+          ? [partner]
+          : [];
 
-    allSuggestingPartners.forEach((suggested) => {
-      // Find a neighbor in availableNeighbors that hasn't been used yet and is strictly NOT the suggested item
-      let neighbor = availableNeighbors.find(
-        (n) => n._id !== suggested._id && !usedNeighborIds.has(n._id)
-      );
+      const cat = (anchor.category || "").toLowerCase();
+      let cupboardProds = shoes;
+      if (cat.includes("jacket")) cupboardProds = jackets;
+      else if (cat.includes("shirt") && !cat.includes("t-shirt") && !cat.includes("tee")) cupboardProds = shirts;
+      else if (cat.includes("jean") || cat.includes("denim")) cupboardProds = jeans;
+      else if (cat.includes("t-shirt") || cat.includes("tee")) cupboardProds = tshirts;
 
-      // Fallback: any other product in cupboardProducts not used yet and not suggested
-      if (!neighbor) {
-        neighbor = cupboardProducts.find(
-          (p) => p._id !== suggested._id && p._id !== fastMoverProduct._id && !usedNeighborIds.has(p._id)
-        );
-      }
+      const suggestedIds = new Set(partners.map((p) => p._id));
+      const availNeighbors = cupboardProds.filter((p) => p._id !== anchor._id && !suggestedIds.has(p._id));
+      const fSku = parseInt((anchor.sku || "").replace(/\D/g, ""), 10) || 0;
+      availNeighbors.sort((a, b) => {
+        const aSku = parseInt((a.sku || "").replace(/\D/g, ""), 10) || 0;
+        const bSku = parseInt((b.sku || "").replace(/\D/g, ""), 10) || 0;
+        return Math.abs(aSku - fSku) - Math.abs(bSku - fSku);
+      });
 
-      if (neighbor) {
-        usedNeighborIds.add(neighbor._id);
-        pairs.push({
-          suggested,
-          neighbor,
-          index: pairs.length,
-          colorHex: colors[pairs.length % colors.length],
-          colorCss: colorHexes[pairs.length % colorHexes.length],
-        });
-      }
+      const usedNeighborIds = new Set<string>();
+      const pairs: Array<{
+        suggested: Product;
+        neighbor: Product;
+        index: number;
+        colorHex: number;
+        colorCss: string;
+      }> = [];
+
+      partners.forEach((suggested) => {
+        let neighbor = availNeighbors.find((n) => n._id !== suggested._id && !usedNeighborIds.has(n._id));
+        if (!neighbor) {
+          neighbor = cupboardProds.find((p) => p._id !== suggested._id && p._id !== anchor._id && !usedNeighborIds.has(p._id));
+        }
+        if (neighbor) {
+          usedNeighborIds.add(neighbor._id);
+          pairs.push({
+            suggested,
+            neighbor,
+            index: pairs.length,
+            colorHex: colors[pairs.length % colors.length],
+            colorCss: colorHexes[pairs.length % colorHexes.length],
+          });
+        }
+      });
+      return pairs;
     });
+  }, [suggestions, defaultFallbackAnchor, defaultFallbackPartner, jackets, shirts, jeans, tshirts, shoes]);
 
-    return pairs;
-  }, [fastMoverProduct, allSuggestingPartners, cupboardProducts]);
+  const swapPairs = allCupboardSwapPairs[selectedSuggestionIdx] || allCupboardSwapPairs[0] || [];
+  const allFlattenedCupboardPairs = React.useMemo(() => allCupboardSwapPairs.flat(), [allCupboardSwapPairs]);
 
   // 🌟 Hero Runway Full Outfit Bundles (Jacket + T-Shirt + Pants + Shoes) for 3 Grand Stations
   const heroRunwayOutfits = React.useMemo(() => {
@@ -686,9 +702,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             setFloorSwapStaffMap({});
             setFloorCheckedItems({});
           }
-          triggerFlightAnimationRef.current?.(incomingApplied);
+          let appliedProdIds: string[] | undefined;
+          if (incomingApplied && data.activePairId) {
+            const idx = suggestions.findIndex((s) => s.id === data.activePairId);
+            if (idx !== -1) {
+              const hero = heroRunwayPairs[idx] || heroRunwayPairs[0];
+              appliedProdIds = [hero.outfit.jacket._id, hero.outfit.tshirt._id, hero.outfit.pants._id, hero.outfit.shoes._id];
+            }
+          }
+          triggerFlightAnimationRef.current?.(incomingApplied, appliedProdIds);
         }
-        if (data.applied && data.activePairId) {
+        if (!hasUserSelectedRef.current && data.applied && data.activePairId) {
           const idx = suggestions.findIndex((s) => s.id === data.activePairId);
           if (idx !== -1) setSelectedSuggestionIdx(idx);
         }
@@ -698,7 +722,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       const data = payload as any;
       if (data) {
         if (data.swapMode) setSwapMode(data.swapMode);
-        if (typeof data.spotIndex === "number") setSelectedSuggestionIdx(data.spotIndex);
+        // If user manually chose a station tab on their screen, don't hijack their tab selection,
+        // but the 3D visualizer will animate the swapped station in full 3D right in front of them!
+        if (!hasUserSelectedRef.current && typeof data.spotIndex === "number") {
+          setSelectedSuggestionIdx(data.spotIndex);
+        }
         setPlanogramApplied(true);
         planogramAppliedRef.current = true;
 
@@ -706,7 +734,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const staff = data.staffName || "Floor Staff";
         const time = data.timestamp || new Date().toISOString();
 
-        // 🚀 Trigger 3D flight animation for ONLY the items executed by floor staff!
+        // 🚀 Trigger 3D flight animation for the executed items across whatever station was swapped!
         triggerFlightAnimationRef.current?.(true, productIds);
 
         // Mark items as executed in local state
@@ -997,7 +1025,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       );
       planogramAppliedRef.current = true;
       setPlanogramApplied(true);
-      triggerFlightAnimationRef.current?.(true);
+      const appliedProdIds =
+        swapMode === "hero_showcase"
+          ? [
+              selectedHero.outfit.jacket._id,
+              selectedHero.outfit.tshirt._id,
+              selectedHero.outfit.pants._id,
+              selectedHero.outfit.shoes._id,
+            ]
+          : swapPairs.map((p) => p.suggested._id);
+      triggerFlightAnimationRef.current?.(true, appliedProdIds);
       await api.post("/recommendations/apply-planogram", payload);
       showToast(
         swapMode === "hero_showcase"
@@ -2298,51 +2335,49 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     const swapBeaconGroups: THREE.Group[] = [];
 
     const isHeroMode = swapMode === "hero_showcase";
-    const activeRouteItems: Array<{
-      suggested: Product;
-      neighbor?: Product;
-      targetPt: THREE.Vector3;
-      colorHex: number;
-      badgeText: string;
-      role: string;
-    }> =
-      isHeroMode
+
+    // Neon Guide Routes & Floating Beacons (grouped so they can dynamically update per suggestion without scene remount)
+    const routesGuideGroup = new THREE.Group();
+    scene.add(routesGuideGroup);
+
+    const rebuildGuideRoutes = (sIdxSelected: number) => {
+      // Clear previous routes and meshes
+      while (routesGuideGroup.children.length > 0) {
+        const obj = routesGuideGroup.children[0];
+        routesGuideGroup.remove(obj);
+        if (obj instanceof THREE.Mesh) {
+          if (obj.geometry) obj.geometry.dispose();
+          if (obj.material) {
+            const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+            mats.forEach((m) => m.dispose());
+          }
+        }
+      }
+      animatedGuidePulses.length = 0;
+      swapBeaconGroups.length = 0;
+
+      type RouteItem = {
+        suggested: Product;
+        neighbor?: Product;
+        targetPt: THREE.Vector3;
+        colorHex: number;
+        badgeText: string;
+        role: string;
+      };
+
+      const activeRouteItems: RouteItem[] = isHeroMode
         ? (() => {
-            const hero = heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0];
+            const hero = heroRunwayPairs[sIdxSelected] || heroRunwayPairs[0];
             const m = mannequins[hero.index];
             if (!m) return [];
             return [
-              {
-                suggested: hero.outfit.jacket,
-                targetPt: m.worldChestPos,
-                colorHex: 0xf59e0b, // Amber Gold
-                badgeText: `★ ${hero.badge} COAT`,
-                role: "Outerwear",
-              },
-              {
-                suggested: hero.outfit.tshirt,
-                targetPt: m.worldChestPos,
-                colorHex: 0x38bdf8, // Sky Blue
-                badgeText: `★ ${hero.badge} SHIRT`,
-                role: "Topwear",
-              },
-              {
-                suggested: hero.outfit.pants,
-                targetPt: m.worldPantsPos,
-                colorHex: 0x10b981, // Emerald Green
-                badgeText: `★ ${hero.badge} PANTS`,
-                role: "Bottomwear",
-              },
-              {
-                suggested: hero.outfit.shoes,
-                targetPt: m.worldShoesPos,
-                colorHex: 0xa855f7, // Royal Purple
-                badgeText: `★ ${hero.badge} SHOES`,
-                role: "Footwear",
-              },
+              { suggested: hero.outfit.jacket, targetPt: m.worldChestPos, colorHex: 0xf59e0b, badgeText: `★ ${hero.badge} COAT`, role: "Outerwear" },
+              { suggested: hero.outfit.tshirt, targetPt: m.worldChestPos, colorHex: 0x38bdf8, badgeText: `★ ${hero.badge} SHIRT`, role: "Topwear" },
+              { suggested: hero.outfit.pants, targetPt: m.worldPantsPos, colorHex: 0x10b981, badgeText: `★ ${hero.badge} PANTS`, role: "Bottomwear" },
+              { suggested: hero.outfit.shoes, targetPt: m.worldShoesPos, colorHex: 0xa855f7, badgeText: `★ ${hero.badge} SHOES`, role: "Footwear" },
             ];
           })()
-        : swapPairs.map((pair, idx) => {
+        : (allCupboardSwapPairs[sIdxSelected] || allCupboardSwapPairs[0] || []).map((pair, idx) => {
             const nLoc = getProductShelfLocation(pair.neighbor);
             return {
               suggested: pair.suggested,
@@ -2354,117 +2389,144 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             };
           });
 
-    activeRouteItems.forEach((item, sIdx) => {
-      const pShelfLoc = getProductShelfLocation(item.suggested);
-      const originShelfPt = new THREE.Vector3(pShelfLoc.x, pShelfLoc.y + 0.3, pShelfLoc.z);
-      const targetPt = item.targetPt;
+      activeRouteItems.forEach((item, sIdx) => {
+        const pShelfLoc = getProductShelfLocation(item.suggested);
+        const originShelfPt = new THREE.Vector3(pShelfLoc.x, pShelfLoc.y + 0.3, pShelfLoc.z);
+        const targetPt = item.targetPt;
 
-      const arcApexY = Math.max(originShelfPt.y, targetPt.y) + 2.8 + sIdx * 0.35;
-      const arcMidPt = new THREE.Vector3(
-        (originShelfPt.x + targetPt.x) / 2,
-        arcApexY,
-        (originShelfPt.z + targetPt.z) / 2
-      );
-
-      const neonCurve = new THREE.QuadraticBezierCurve3(originShelfPt, arcMidPt, targetPt);
-      const neonColor = item.colorHex;
-
-      // Glowing Tube line connecting suggested item to target
-      const tubeGeo = new THREE.TubeGeometry(neonCurve, 36, 0.024, 6, false);
-      const tubeMat = new THREE.MeshBasicMaterial({ color: neonColor });
-      scene.add(new THREE.Mesh(tubeGeo, tubeMat));
-
-      // Arrow cone pointing into target slot or mannequin
-      const arrowCone = new THREE.Mesh(arrowConeGeo, new THREE.MeshBasicMaterial({ color: neonColor }));
-      const ptBefore = neonCurve.getPoint(0.93);
-      const ptEnd = neonCurve.getPoint(0.98);
-      arrowCone.position.copy(ptEnd);
-      arrowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ptEnd.clone().sub(ptBefore).normalize());
-      scene.add(arrowCone);
-
-      // Return arrow cone pointing into the other cupboard (in cupboard mutual mode only)
-      if (!isHeroMode && item.neighbor) {
-        const returnArrowCone = new THREE.Mesh(arrowConeGeo, new THREE.MeshBasicMaterial({ color: neonColor }));
-        const rPtBefore = neonCurve.getPoint(0.07);
-        const rPtEnd = neonCurve.getPoint(0.02);
-        returnArrowCone.position.copy(rPtEnd);
-        returnArrowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rPtEnd.clone().sub(rPtBefore).normalize());
-        scene.add(returnArrowCone);
-      }
-
-      // Flowing animated pulse along line
-      const pulseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
-      scene.add(pulseMesh);
-      animatedGuidePulses.push({ mesh: pulseMesh, curve: neonCurve, offset: sIdx * 0.22 });
-
-      // Floating Beacon at target (only 1 central beacon for hero mode on chest)
-      if (!isHeroMode || sIdx === 0) {
-        const bGroup = new THREE.Group();
-        bGroup.position.set(targetPt.x, targetPt.y + (isHeroMode ? 1.05 : 0.85), targetPt.z);
-        const bCanvas = document.createElement("canvas");
-        bCanvas.width = 300;
-        bCanvas.height = 68;
-        const bCtx = bCanvas.getContext("2d")!;
-        bCtx.fillStyle = isHeroMode ? "rgba(245, 158, 11, 0.95)" : "rgba(16, 185, 129, 0.95)";
-        bCtx.fillRect(0, 0, 300, 68);
-        bCtx.strokeStyle = "#ffffff";
-        bCtx.lineWidth = 3;
-        bCtx.strokeRect(2, 2, 296, 64);
-        bCtx.fillStyle = "#ffffff";
-        bCtx.font = "bold 19px sans-serif";
-        bCtx.textAlign = "center";
-        bCtx.fillText(
-          isHeroMode
-            ? `👑 ${(heroRunwayPairs[selectedSuggestionIdx] || heroRunwayPairs[0]).badge}: 4-PIECE OUTFIT`
-            : `★ CUPBOARD SWAP #${sIdx + 1}`,
-          150,
-          42
+        const arcApexY = Math.max(originShelfPt.y, targetPt.y) + 2.8 + sIdx * 0.35;
+        const arcMidPt = new THREE.Vector3(
+          (originShelfPt.x + targetPt.x) / 2,
+          arcApexY,
+          (originShelfPt.z + targetPt.z) / 2
         );
-        const bTex = new THREE.CanvasTexture(bCanvas);
-        const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.25), new THREE.MeshBasicMaterial({ map: bTex, transparent: true }));
-        bGroup.add(bMesh);
-        bGroup.visible = Boolean(planogramAppliedRef.current);
-        scene.add(bGroup);
-        swapBeaconGroups.push(bGroup);
-      }
-    });
 
-    // If planogram was already applied before this scene mount, immediately set swapped positions & dress only selected mannequin
-    if (planogramAppliedRef.current) {
+        const neonCurve = new THREE.QuadraticBezierCurve3(originShelfPt, arcMidPt, targetPt);
+        const neonColor = item.colorHex;
+
+        // Glowing Tube line connecting suggested item to target
+        const tubeGeo = new THREE.TubeGeometry(neonCurve, 36, 0.024, 6, false);
+        const tubeMat = new THREE.MeshBasicMaterial({ color: neonColor });
+        routesGuideGroup.add(new THREE.Mesh(tubeGeo, tubeMat));
+
+        // Arrow cone pointing into target slot or mannequin
+        const arrowCone = new THREE.Mesh(arrowConeGeo, new THREE.MeshBasicMaterial({ color: neonColor }));
+        const ptBefore = neonCurve.getPoint(0.93);
+        const ptEnd = neonCurve.getPoint(0.98);
+        arrowCone.position.copy(ptEnd);
+        arrowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), ptEnd.clone().sub(ptBefore).normalize());
+        routesGuideGroup.add(arrowCone);
+
+        // Return arrow cone pointing into the other cupboard (in cupboard mutual mode only)
+        if (!isHeroMode && item.neighbor) {
+          const returnArrowCone = new THREE.Mesh(arrowConeGeo, new THREE.MeshBasicMaterial({ color: neonColor }));
+          const rPtBefore = neonCurve.getPoint(0.07);
+          const rPtEnd = neonCurve.getPoint(0.02);
+          returnArrowCone.position.copy(rPtEnd);
+          returnArrowCone.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), rPtEnd.clone().sub(rPtBefore).normalize());
+          routesGuideGroup.add(returnArrowCone);
+        }
+
+        // Flowing animated pulse along line
+        const pulseMesh = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        routesGuideGroup.add(pulseMesh);
+        animatedGuidePulses.push({ mesh: pulseMesh, curve: neonCurve, offset: sIdx * 0.22 });
+
+        // Floating Beacon at target (only 1 central beacon for hero mode on chest)
+        if (!isHeroMode || sIdx === 0) {
+          const bGroup = new THREE.Group();
+          bGroup.position.set(targetPt.x, targetPt.y + (isHeroMode ? 1.05 : 0.85), targetPt.z);
+          const bCanvas = document.createElement("canvas");
+          bCanvas.width = 300;
+          bCanvas.height = 68;
+          const bCtx = bCanvas.getContext("2d")!;
+          bCtx.fillStyle = isHeroMode ? "rgba(245, 158, 11, 0.95)" : "rgba(16, 185, 129, 0.95)";
+          bCtx.fillRect(0, 0, 300, 68);
+          bCtx.strokeStyle = "#ffffff";
+          bCtx.lineWidth = 3;
+          bCtx.strokeRect(2, 2, 296, 64);
+          bCtx.fillStyle = "#ffffff";
+          bCtx.font = "bold 19px sans-serif";
+          bCtx.textAlign = "center";
+          bCtx.fillText(
+            isHeroMode
+              ? `👑 ${(heroRunwayPairs[sIdxSelected] || heroRunwayPairs[0]).badge}: 4-PIECE OUTFIT`
+              : `★ CUPBOARD SWAP #${sIdx + 1}`,
+            150,
+            42
+          );
+          const bTex = new THREE.CanvasTexture(bCanvas);
+          const bMesh = new THREE.Mesh(new THREE.PlaneGeometry(1.05, 0.25), new THREE.MeshBasicMaterial({ map: bTex, transparent: true }));
+          bGroup.add(bMesh);
+          bGroup.visible = Boolean(planogramAppliedRef.current);
+          routesGuideGroup.add(bGroup);
+          swapBeaconGroups.push(bGroup);
+        }
+      });
+    };
+
+    rebuildGuideRoutesRef.current = rebuildGuideRoutes;
+    rebuildGuideRoutes(selectedSuggestionIdxRef.current);
+
+    // Synchronize 3D products and mannequin outfits according to applied and executed floor swaps
+    const syncPositionsAndOutfits = () => {
       if (isHeroMode) {
-        const selectedHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
-        mannequins.forEach((m, idx) => {
-          if (idx === selectedHero.index) {
-            const jGroup = productGroupsMap.get(selectedHero.outfit.jacket._id);
-            const tGroup = productGroupsMap.get(selectedHero.outfit.tshirt._id);
-            const pGroup = productGroupsMap.get(selectedHero.outfit.pants._id);
-            const sGroup = productGroupsMap.get(selectedHero.outfit.shoes._id);
+        heroRunwayOutfits.forEach((hero) => {
+          const m = mannequins[hero.index];
+          if (!m) return;
+          const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
+          const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
+          const pGroup = productGroupsMap.get(hero.outfit.pants._id);
+          const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
 
-            // Position at mannequin and HIDE the shelf box tokens since the mannequin is wearing actual 3D clothing!
+          const hasFloorExecuted =
+            Boolean(executedFloorItemsRef.current[hero.outfit.jacket._id]) ||
+            Boolean(executedFloorItemsRef.current[hero.outfit.tshirt._id]) ||
+            Boolean(executedFloorItemsRef.current[hero.outfit.pants._id]) ||
+            Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id]);
+
+          const shouldDress = hasFloorExecuted || (planogramAppliedRef.current && hero.index === selectedSuggestionIdxRef.current);
+
+          if (shouldDress) {
             if (jGroup) { jGroup.group.position.copy(m.worldChestPos); jGroup.group.visible = false; }
             if (tGroup) { tGroup.group.position.copy(m.worldChestPos); tGroup.group.visible = false; }
             if (pGroup) { pGroup.group.position.copy(m.worldPantsPos); pGroup.group.visible = false; }
             if (sGroup) { sGroup.group.position.copy(m.worldShoesPos); sGroup.group.visible = false; }
-
-            m.updateOutfit(selectedHero.outfit);
+            m.updateOutfit(hero.outfit);
           } else {
+            if (jGroup) { jGroup.group.position.copy(jGroup.originalPos); jGroup.group.visible = true; }
+            if (tGroup) { tGroup.group.position.copy(tGroup.originalPos); tGroup.group.visible = true; }
+            if (pGroup) { pGroup.group.position.copy(pGroup.originalPos); pGroup.group.visible = true; }
+            if (sGroup) { sGroup.group.position.copy(sGroup.originalPos); sGroup.group.visible = true; }
             m.updateOutfit(null);
           }
         });
       } else {
-        swapPairs.forEach((pair) => {
+        allFlattenedCupboardPairs.forEach((pair) => {
           const itemS = productGroupsMap.get(pair.suggested._id);
           const itemN = productGroupsMap.get(pair.neighbor._id);
+          const isExecuted =
+            Boolean(executedFloorItemsRef.current[pair.suggested._id]) ||
+            Boolean(planogramAppliedRef.current);
+
           if (itemS && itemN) {
-            itemS.group.position.copy(itemN.originalPos);
-            itemN.group.position.copy(itemS.originalPos);
+            if (isExecuted) {
+              itemS.group.position.copy(itemN.originalPos);
+              itemN.group.position.copy(itemS.originalPos);
+            } else {
+              itemS.group.position.copy(itemS.originalPos);
+              itemN.group.position.copy(itemN.originalPos);
+            }
             itemS.group.visible = true;
             itemN.group.visible = true;
           }
         });
       }
+    };
+
+    if (planogramAppliedRef.current) {
+      syncPositionsAndOutfits();
     } else {
-      // Default baseline: all shelf products are visible in their neat folded box shapes on the shelves!
       productGroupsMap.forEach((entry) => {
         entry.group.position.copy(entry.originalPos);
         entry.group.visible = true;
@@ -2476,38 +2538,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     }
 
     snapToAppliedPositionsRef.current = () => {
-      if (isHeroMode) {
-        const selectedHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
-        mannequins.forEach((m, idx) => {
-          if (idx === selectedHero.index) {
-            const jGroup = productGroupsMap.get(selectedHero.outfit.jacket._id);
-            const tGroup = productGroupsMap.get(selectedHero.outfit.tshirt._id);
-            const pGroup = productGroupsMap.get(selectedHero.outfit.pants._id);
-            const sGroup = productGroupsMap.get(selectedHero.outfit.shoes._id);
-
-            // Position at mannequin and HIDE the shelf box tokens since the mannequin is wearing actual 3D clothing!
-            if (jGroup) { jGroup.group.position.copy(m.worldChestPos); jGroup.group.visible = false; }
-            if (tGroup) { tGroup.group.position.copy(m.worldChestPos); tGroup.group.visible = false; }
-            if (pGroup) { pGroup.group.position.copy(m.worldPantsPos); pGroup.group.visible = false; }
-            if (sGroup) { sGroup.group.position.copy(m.worldShoesPos); sGroup.group.visible = false; }
-
-            m.updateOutfit(selectedHero.outfit);
-          } else {
-            m.updateOutfit(null);
-          }
-        });
-      } else {
-        swapPairs.forEach((pair) => {
-          const itemS = productGroupsMap.get(pair.suggested._id);
-          const itemN = productGroupsMap.get(pair.neighbor._id);
-          if (itemS && itemN) {
-            itemS.group.position.copy(itemN.originalPos);
-            itemN.group.position.copy(itemS.originalPos);
-            itemS.group.visible = true;
-            itemN.group.visible = true;
-          }
-        });
-      }
+      syncPositionsAndOutfits();
       swapBeaconGroups.forEach((bg) => {
         bg.visible = true;
       });
@@ -2891,24 +2922,27 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const arcY = Math.sin(progress * Math.PI) * 4.2;
 
         if (isHeroMode) {
-          // 🌟 HERO SHOWCASE: Only the selected hero outfit flies to its dedicated runway mannequin!
-          const selectedHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
-          const m = mannequins[selectedHero.index];
-          if (m) {
-            const jGroup = productGroupsMap.get(selectedHero.outfit.jacket._id);
-            const tGroup = productGroupsMap.get(selectedHero.outfit.tshirt._id);
-            const pGroup = productGroupsMap.get(selectedHero.outfit.pants._id);
-            const sGroup = productGroupsMap.get(selectedHero.outfit.shoes._id);
+          // 🌟 HERO SHOWCASE: All runway outfits fly to their dedicated mannequins across ALL hero pairs/stations!
+          heroRunwayOutfits.forEach((hero) => {
+            const m = mannequins[hero.index];
+            if (!m) return;
+
+            const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
+            const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
+            const pGroup = productGroupsMap.get(hero.outfit.pants._id);
+            const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
             const animItems = [
-              { id: selectedHero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
-              { id: selectedHero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
-              { id: selectedHero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
-              { id: selectedHero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
+              { id: hero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
+              { id: hero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
+              { id: hero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
+              { id: hero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
             ];
 
+            let hasFlightItemForThisHero = false;
             animItems.forEach(({ id, group, target }) => {
               if (!group) return;
               if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(id)) return;
+              hasFlightItemForThisHero = true;
               const pStart = group.originalPos;
               const pEnd = target;
               group.group.visible = true;
@@ -2934,27 +2968,29 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               }
             });
 
-            // Smooth color morphing for only the selected mannequin during flight
-            const targetJHex = getColorHexFromName(selectedHero.outfit.jacket.color, selectedHero.colorHex);
-            const targetTHex = getColorHexFromName(selectedHero.outfit.tshirt.color, 0xf1f5f9);
-            const targetPHex = getColorHexFromName(selectedHero.outfit.pants.color, 0x1e293b);
-            const targetSHex = getColorHexFromName(selectedHero.outfit.shoes.color, 0x0f172a);
+            // Smooth color morphing for this mannequin during flight if its items are flying
+            if (hasFlightItemForThisHero || !flightAnim.specificProductIds) {
+              const targetJHex = getColorHexFromName(hero.outfit.jacket.color, hero.colorHex);
+              const targetTHex = getColorHexFromName(hero.outfit.tshirt.color, 0xf1f5f9);
+              const targetPHex = getColorHexFromName(hero.outfit.pants.color, 0x1e293b);
+              const targetSHex = getColorHexFromName(hero.outfit.shoes.color, 0x0f172a);
 
-            if (flightAnim.forward) {
-              m.jacketMat.color.copy(new THREE.Color(m.defaultTorsoColor)).lerp(new THREE.Color(targetJHex), t);
-              m.innerTopMat.color.copy(new THREE.Color(m.defaultInnerColor)).lerp(new THREE.Color(targetTHex), t);
-              m.pantsMat.color.copy(new THREE.Color(m.defaultPantsColor)).lerp(new THREE.Color(targetPHex), t);
-              m.shoesMat.color.copy(new THREE.Color(m.defaultShoesColor)).lerp(new THREE.Color(targetSHex), t);
-            } else {
-              m.jacketMat.color.copy(new THREE.Color(targetJHex)).lerp(new THREE.Color(m.defaultTorsoColor), t);
-              m.innerTopMat.color.copy(new THREE.Color(targetTHex)).lerp(new THREE.Color(m.defaultInnerColor), t);
-              m.pantsMat.color.copy(new THREE.Color(targetPHex)).lerp(new THREE.Color(m.defaultPantsColor), t);
-              m.shoesMat.color.copy(new THREE.Color(targetSHex)).lerp(new THREE.Color(m.defaultShoesColor), t);
+              if (flightAnim.forward) {
+                m.jacketMat.color.copy(new THREE.Color(m.defaultTorsoColor)).lerp(new THREE.Color(targetJHex), t);
+                m.innerTopMat.color.copy(new THREE.Color(m.defaultInnerColor)).lerp(new THREE.Color(targetTHex), t);
+                m.pantsMat.color.copy(new THREE.Color(m.defaultPantsColor)).lerp(new THREE.Color(targetPHex), t);
+                m.shoesMat.color.copy(new THREE.Color(m.defaultShoesColor)).lerp(new THREE.Color(targetSHex), t);
+              } else {
+                m.jacketMat.color.copy(new THREE.Color(targetJHex)).lerp(new THREE.Color(m.defaultTorsoColor), t);
+                m.innerTopMat.color.copy(new THREE.Color(targetTHex)).lerp(new THREE.Color(m.defaultInnerColor), t);
+                m.pantsMat.color.copy(new THREE.Color(targetPHex)).lerp(new THREE.Color(m.defaultPantsColor), t);
+                m.shoesMat.color.copy(new THREE.Color(targetSHex)).lerp(new THREE.Color(m.defaultShoesColor), t);
+              }
             }
-          }
+          });
         } else {
-          // 🏬 CUPBOARD MUTUAL 1:1 SWAP: Outfits swap cleanly between cupboards without duplicate targets
-          swapPairs.forEach((pair) => {
+          // 🏬 CUPBOARD MUTUAL 1:1 SWAP: Outfits swap cleanly between cupboards across ALL pairs
+          allFlattenedCupboardPairs.forEach((pair) => {
             if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(pair.suggested._id)) return;
             const itemS = productGroupsMap.get(pair.suggested._id);
             const itemN = productGroupsMap.get(pair.neighbor._id);
@@ -2990,49 +3026,52 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         if (progress >= 1.0) {
           flightAnim.active = false;
           if (isHeroMode) {
-            const selectedHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
-            mannequins.forEach((m, idx) => {
-              if (idx === selectedHero.index) {
-                const jGroup = productGroupsMap.get(selectedHero.outfit.jacket._id);
-                const tGroup = productGroupsMap.get(selectedHero.outfit.tshirt._id);
-                const pGroup = productGroupsMap.get(selectedHero.outfit.pants._id);
-                const sGroup = productGroupsMap.get(selectedHero.outfit.shoes._id);
+            heroRunwayOutfits.forEach((hero) => {
+              const m = mannequins[hero.index];
+              if (!m) return;
 
-                const animItems = [
-                  { id: selectedHero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
-                  { id: selectedHero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
-                  { id: selectedHero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
-                  { id: selectedHero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
-                ];
+              const jGroup = productGroupsMap.get(hero.outfit.jacket._id);
+              const tGroup = productGroupsMap.get(hero.outfit.tshirt._id);
+              const pGroup = productGroupsMap.get(hero.outfit.pants._id);
+              const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
 
-                animItems.forEach(({ id, group, target }) => {
-                  if (!group) return;
-                  if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(id)) return;
-                  group.group.rotation.y = 0;
-                  if (flightAnim.forward) {
-                    // Forward swap: box reached mannequin -> hide shelf box, mannequin wears actual 3D accessories!
-                    group.group.position.copy(target);
-                    group.group.visible = false;
-                    group.group.scale.setScalar(1.0);
-                  } else {
-                    // Revert swap: box back on shelf -> show box in shelf at original position!
-                    group.group.position.copy(group.originalPos);
-                    group.group.visible = true;
-                    group.group.scale.setScalar(1.0);
-                  }
-                });
+              const animItems = [
+                { id: hero.outfit.jacket._id, group: jGroup, target: m.worldChestPos },
+                { id: hero.outfit.tshirt._id, group: tGroup, target: m.worldChestPos },
+                { id: hero.outfit.pants._id, group: pGroup, target: m.worldPantsPos },
+                { id: hero.outfit.shoes._id, group: sGroup, target: m.worldShoesPos },
+              ];
 
+              let affectedItemsCount = 0;
+              animItems.forEach(({ id, group, target }) => {
+                if (!group) return;
+                if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(id)) return;
+                affectedItemsCount++;
+                group.group.rotation.y = 0;
                 if (flightAnim.forward) {
-                  m.updateOutfit(selectedHero.outfit);
+                  // Forward swap: box reached mannequin -> hide shelf box, mannequin wears actual 3D accessories!
+                  group.group.position.copy(target);
+                  group.group.visible = false;
+                  group.group.scale.setScalar(1.0);
+                } else {
+                  // Revert swap: box back on shelf -> show box in shelf at original position!
+                  group.group.position.copy(group.originalPos);
+                  group.group.visible = true;
+                  group.group.scale.setScalar(1.0);
+                }
+              });
+
+              // Only update this mannequin if its items were part of this flight or full planogram
+              if (affectedItemsCount > 0 || !flightAnim.specificProductIds) {
+                if (flightAnim.forward) {
+                  m.updateOutfit(hero.outfit);
                 } else {
                   m.updateOutfit(null);
                 }
-              } else {
-                m.updateOutfit(null);
               }
             });
           } else {
-            swapPairs.forEach((pair) => {
+            allFlattenedCupboardPairs.forEach((pair) => {
               if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(pair.suggested._id)) return;
               const itemS = productGroupsMap.get(pair.suggested._id);
               const itemN = productGroupsMap.get(pair.neighbor._id);
@@ -3115,7 +3154,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   }, [
     isFullScreen,
     isPerformanceMode,
-    selectedSuggestionIdx,
     catalogProducts.length,
     swapMode,
   ]);
