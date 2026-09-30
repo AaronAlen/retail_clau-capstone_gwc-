@@ -147,6 +147,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const dispatch = useDispatch<AppDispatch>();
   const catalogProducts = useSelector((state: RootState) => state.products.items);
   const currentUser = useSelector((state: RootState) => state.auth.user);
+  const canManageShowroom = currentUser?.role === "admin" || currentUser?.role === "manager";
 
   const visualizerRootRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -1307,6 +1308,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       }
     } catch (err: any) {
       showToast(err.response?.data?.message || "Failed to reset station", "error");
+    } finally {
+      setIsSavingFloorSwap(false);
+    }
+  };
+
+  // 🔄 Explicit Seasonal Reset: Reset ALL 8 stations back to home shelves (Managers only)
+  const handleResetEntireShowroom = async () => {
+    if (
+      !window.confirm(
+        "Seasonal Store Reset: Are you sure you want to revert all 8 stations back to their baseline home shelves? This will reset all active floor swaps."
+      )
+    ) {
+      return;
+    }
+    setIsSavingFloorSwap(true);
+    try {
+      const res = await api.post("/recommendations/reset-all-showroom");
+      if (res.data?.success) {
+        setExecutedFloorItems({});
+        setFloorSwapStaffMap({});
+        setFloorCheckedItems({});
+        triggerFlightAnimationRef.current?.(false);
+        dispatch(fetchProducts());
+        showToast("🔄 Entire Showroom reset to baseline home shelves!", "info");
+      }
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to reset showroom", "error");
     } finally {
       setIsSavingFloorSwap(false);
     }
@@ -4181,6 +4209,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             </h4>
           </div>
           <div className="flex items-center gap-1 shrink-0">
+            {canManageShowroom && (
+              <button
+                onClick={handleResetEntireShowroom}
+                disabled={isSavingFloorSwap}
+                className="text-[9px] bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 font-bold px-2 py-0.5 rounded-full border border-rose-500/30 cursor-pointer transition-colors"
+                title="Seasonal Store Reset: Revert all 8 stations back to baseline home shelves"
+              >
+                Reset Store
+              </button>
+            )}
             <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
               Live DB Sync
             </span>

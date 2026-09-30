@@ -13,6 +13,7 @@ router.post("/apply-planogram", recommendation_controller_1.applyPlanogram);
 router.post("/floor-swap", recommendation_controller_1.executeFloorSwap);
 router.get("/floor-swaps", recommendation_controller_1.getFloorSwaps);
 router.post("/floor-swap/revert", recommendation_controller_1.revertFloorSwap);
+router.post("/reset-all-showroom", (0, role_1.authorize)("admin", "manager"), recommendation_controller_1.resetAllShowroomSwaps);
 router.post("/reset-planogram", recommendation_controller_1.resetPlanogram);
 router.get("/:id/similar", recommendation_controller_1.getSimilarForProduct);
 exports.default = router;

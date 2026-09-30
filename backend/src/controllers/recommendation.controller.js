@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.recalculateRecommendations = exports.revertFloorSwap = exports.getFloorSwaps = exports.executeFloorSwap = exports.resetPlanogram = exports.applyPlanogram = exports.getPlanogramState = exports.getSimilarForProduct = exports.getRecommendations = void 0;
+exports.resetAllShowroomSwaps = exports.recalculateRecommendations = exports.revertFloorSwap = exports.getFloorSwaps = exports.executeFloorSwap = exports.resetPlanogram = exports.applyPlanogram = exports.getPlanogramState = exports.getSimilarForProduct = exports.getRecommendations = void 0;
 const express_async_handler_1 = __importDefault(require("express-async-handler"));
 const velocity_service_1 = require("../services/velocity.service");
 const recommendation_service_1 = require("../services/recommendation.service");
@@ -132,10 +132,7 @@ exports.recalculateRecommendations = (0, express_async_handler_1.default)(async 
 
     try {
         const useAI = req.query.ai !== "false" && req.body?.ai !== false;
-        // Automatically reset previous floor swaps to reverted and restore baseline coordinates
-        // so the new strategy starts from a completely clean, uncorrupted baseline!
-        await FloorSwap_1.default.updateMany({ status: "active" }, { $set: { status: "reverted", revertedAt: new Date() } });
-        await (0, updateCoordinates_1.resetAllProductsToBaselineCoords)();
+        console.log(`[Recommendations] Continuous cycle recalculation triggered by ${req.user.name} (${req.user.role}) with AI=${useAI}`);
 
         const freshRecs = await generateRecommendationsCalculation(useAI);
 
@@ -260,8 +257,54 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
         }
     }
 
-    // 3. Save / Update in dedicated FloorSwap MongoDB Collection
+    // 3. Direct Incremental Replacement: Check if this station already had an active swap.
+    // If so, restore only the old items being replaced back to their original home shelves!
     try {
+        const queryOr = [];
+        if (activePairId) queryOr.push({ activePairId });
+        if (typeof spotIndex === "number") queryOr.push({ spotIndex });
+
+        if (queryOr.length > 0) {
+            const prevRecords = await FloorSwap_1.default.find({
+                status: "active",
+                $or: queryOr,
+            });
+            const incomingIds = new Set(executedItems.map((it) => String(it.productId)));
+            for (const prevRec of prevRecords) {
+                for (const oldIt of prevRec.executedItems) {
+                    if (!incomingIds.has(String(oldIt.productId))) {
+                        const orig = oldIt.originalCoords;
+                        await Product_1.default.findByIdAndUpdate(oldIt.productId, {
+                            coordinates3D: {
+                                x: orig?.x,
+                                y: orig?.y,
+                                z: orig?.z,
+                                zone: orig?.zone || "Original Shelf Slot",
+                                isRelocated: false,
+                            },
+                        });
+                    }
+                }
+                for (const oldDisp of (prevRec.displacedItems || [])) {
+                    if (!incomingIds.has(String(oldDisp.productId))) {
+                        const orig = oldDisp.originalCoords;
+                        await Product_1.default.findByIdAndUpdate(oldDisp.productId, {
+                            coordinates3D: {
+                                x: orig?.x,
+                                y: orig?.y,
+                                z: orig?.z,
+                                zone: orig?.zone || "Original Shelf Slot",
+                                isRelocated: false,
+                            },
+                        });
+                    }
+                }
+                prevRec.status = "reverted";
+                prevRec.revertedAt = new Date();
+                await prevRec.save();
+            }
+        }
+
         await FloorSwap_1.default.create({
             swapMode: swapMode || "hero_showcase",
             activePairId: activePairId || "sug-1",
@@ -437,6 +480,37 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
         success: true,
         message: `Successfully reverted ${revertedProductIds.length} floor swap item(s)`,
         payload,
+    });
+});
+
+// 🔄 Full Store Seasonal Reset: Explicit Manager action to revert all showroom displays back to home shelves
+exports.resetAllShowroomSwaps = (0, express_async_handler_1.default)(async (req, res) => {
+    // 1. Mark all active floor swaps as reverted
+    const swapRes = await FloorSwap_1.default.updateMany(
+        { status: "active" },
+        { $set: { status: "reverted", revertedAt: new Date() } }
+    );
+
+    // 2. Reset all 60 products to baseline shelf coordinates
+    await (0, updateCoordinates_1.resetAllProductsToBaselineCoords)();
+
+    // 3. Reset planograms
+    await Planogram_1.default.updateMany({}, { $set: { applied: false } });
+
+    // 4. Broadcast live reset to all clients
+    try {
+        (0, sockets_1.getIO)().emit("floor_swap_reverted", {
+            all: true,
+            allReset: true,
+            staffName: req.user?.name || "Store Manager",
+            timestamp: new Date().toISOString(),
+        });
+        (0, sockets_1.getIO)().emit("product:updated");
+    } catch {}
+
+    res.json({
+        success: true,
+        message: `Seasonal store reset complete: all ${swapRes.modifiedCount} active swaps reverted back to baseline home shelves.`,
     });
 });
 //# sourceMappingURL=recommendation.controller.js.map
