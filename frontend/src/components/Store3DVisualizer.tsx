@@ -154,7 +154,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const [isHorizontalMode, setIsHorizontalMode] = useState(false);
   const [isMobileLandscape, setIsMobileLandscape] = useState(false);
   const [isForcedRotate90, setIsForcedRotate90] = useState(false);
-  const [mobileDrawer, setMobileDrawer] = useState<"none" | "inspect" | "strategy" | "tasks">("none");
+  const [mobileDrawer, setMobileDrawer] = useState<"none" | "search" | "inspect" | "strategy" | "tasks">("none");
+  const [mobileSearchDept, setMobileSearchDept] = useState<string>("All");
   const [strategyTab, setStrategyTab] = useState<"strategy" | "floor_tasks">("strategy");
   const [floorCheckedItems, setFloorCheckedItems] = useState<Record<string, boolean>>({});
   const [executedFloorItems, setExecutedFloorItems] = useState<Record<string, boolean>>({});
@@ -3165,6 +3166,155 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     ? getProductImage(activeDisplayProduct.category, activeDisplayProduct.color, activeDisplayProduct.name, activeDisplayProduct.imageUrl)
     : "";
 
+  // 📱 REUSABLE MOBILE SEARCH DRAWER (FAST SEARCH ACROSS ALL 60 PRODUCTS WITH 3D SCOPE TARGETING)
+  const renderMobileSearchDrawer = (onClose?: () => void) => {
+    const q = searchQuery.toLowerCase().trim();
+    const filtered = catalogProducts.filter((p) => {
+      const matchDept = mobileSearchDept === "All" || p.category.toLowerCase() === mobileSearchDept.toLowerCase();
+      if (!matchDept) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        p.category.toLowerCase().includes(q) ||
+        (p.color && p.color.toLowerCase().includes(q))
+      );
+    });
+
+    const storeDepts = ["All", "Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
+
+    return (
+      <div
+        className={`glass-panel rounded-3xl p-3.5 flex flex-col h-full shadow-2xl border border-amber-500/35 overflow-hidden ${
+          onClose ? "bg-stone-950/95 h-full" : ""
+        }`}
+      >
+        {/* Header */}
+        <div className="shrink-0 flex items-center justify-between pb-2 border-b border-amber-500/20">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Search className="w-4 h-4 text-amber-400 shrink-0" />
+            <h4 className="text-xs font-black text-white uppercase tracking-wider truncate">
+              Product Search & 3D Scope
+            </h4>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+              {filtered.length} SKUs
+            </span>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer ml-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Search Input Box */}
+        <div className="my-2 relative shrink-0">
+          <Search className="w-3.5 h-3.5 text-amber-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by name, color, category, SKU..."
+            autoFocus
+            className="w-full glass-search-input text-white placeholder-stone-400 pl-9 pr-8 py-2 rounded-xl text-xs focus:outline-none transition-all font-semibold border border-amber-500/30 bg-stone-900/90 focus:border-amber-400"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-stone-400 hover:text-white rounded transition-colors"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Department Filter Chips */}
+        <div className="flex gap-1 overflow-x-auto pb-1.5 custom-scrollbar shrink-0">
+          {storeDepts.map((dept) => {
+            const isSelected = mobileSearchDept === dept;
+            return (
+              <button
+                key={dept}
+                onClick={() => setMobileSearchDept(dept)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border shrink-0 ${
+                  isSelected
+                    ? "bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 text-stone-950 border-amber-400 shadow-sm"
+                    : "bg-stone-900/80 text-stone-300 border-stone-800 hover:border-amber-500/40 hover:text-white"
+                }`}
+              >
+                {dept}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Results List */}
+        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 min-h-0 custom-scrollbar my-1">
+          {filtered.length === 0 ? (
+            <div className="py-8 text-center space-y-1 text-stone-400 text-xs">
+              <p className="font-bold text-stone-300">No matching products</p>
+              <p className="text-[10px]">Try searching for "Blazer", "Denim", "Navy", "Boot", etc.</p>
+            </div>
+          ) : (
+            filtered.map((prod) => {
+              const isLocked = searchedProduct?._id === prod._id;
+              const shelf = getProductShelfLocation(prod);
+              return (
+                <div
+                  key={prod._id}
+                  onClick={() => {
+                    handleSelectSearchedProduct(prod);
+                    setMobileDrawer("inspect");
+                    showToast(`🎯 3D Scope locked onto ${prod.name}!`, "success");
+                  }}
+                  className={`flex items-center gap-2 p-2 rounded-xl border transition-all cursor-pointer group ${
+                    isLocked
+                      ? "bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/50"
+                      : "bg-stone-900/70 border-stone-800/80 hover:border-amber-500/40 hover:bg-stone-900"
+                  }`}
+                >
+                  <img
+                    src={getProductImage(prod.category, prod.color, prod.name, prod.imageUrl)}
+                    alt={prod.name}
+                    className="w-10 h-10 rounded-lg object-cover border border-amber-500/30 shrink-0 shadow-sm"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-bold text-white group-hover:text-amber-300 truncate">
+                        {prod.name}
+                      </p>
+                      <span className="text-[10px] font-bold text-amber-400 font-mono shrink-0">
+                        ₹{prod.price}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[9px] text-stone-400">
+                      <span className="font-semibold text-amber-300/90">{prod.category}</span>
+                      <span>•</span>
+                      <span className="text-stone-300">{prod.color}</span>
+                      <span>•</span>
+                      <span className="text-emerald-400 font-semibold">{prod.stock} in stock</span>
+                    </div>
+                    <p className="text-[8px] text-stone-400 truncate mt-0.5">
+                      📍 {shelf?.zone || "Shelf Slot"}
+                    </p>
+                  </div>
+                  <div className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500/10 border border-amber-500/30 group-hover:bg-amber-500 group-hover:text-stone-950 text-amber-400 transition-colors">
+                    <Crosshair className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      </div>
+    );
+  };
+
   // 📱 REUSABLE INSPECTOR CARD (SHARED BETWEEN DESKTOP SIDE PANEL & MOBILE BOTTOM DRAWER)
   const renderInspectorCard = (onClose?: () => void) => {
     if (!hoveredMannequin && !activeDisplayProduct) {
@@ -3207,12 +3357,22 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               <Search className="w-3.5 h-3.5 text-amber-400" />
               <span>Floor Staff 3D Inspector</span>
             </span>
-            <button
-              onClick={onClose}
-              className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setMobileDrawer("search")}
+                className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-amber-300 bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 flex items-center gap-1 cursor-pointer"
+                title="Search another product"
+              >
+                <Search className="w-3 h-3 text-amber-400" />
+                <span>Search</span>
+              </button>
+              <button
+                onClick={onClose}
+                className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
         {hoveredMannequin ? (
@@ -4540,7 +4700,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           </div>
         </div>
 
-        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING */}
+        {/* 🎯 CENTER: PRODUCT SEARCH BAR WITH 3D SCOPE POINTER TARGETING (Hidden on Mobile, Display None) */}
         <div
           ref={searchContainerRef}
           onMouseEnter={() => {
@@ -4549,7 +4709,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           onMouseLeave={() => {
             isMouseOverUIRef.current = false;
           }}
-          className="relative pointer-events-auto flex-1 min-w-[70px] max-w-[130px] sm:max-w-xs md:max-w-sm z-30"
+          className="hidden md:flex relative pointer-events-auto flex-1 max-w-xs md:max-w-sm z-30"
         >
           <div className="relative flex items-center">
             <Search className="w-3.5 h-3.5 text-amber-400 absolute left-2.5 sm:left-3 pointer-events-none" />
@@ -4764,6 +4924,13 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         />
       )}
 
+      {/* Mobile Product Search Drawer (Real-Time Search & 3D Scope Pointer) */}
+      {mobileDrawer === "search" && (
+        <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
+          {renderMobileSearchDrawer(() => setMobileDrawer("none"))}
+        </div>
+      )}
+
       {/* Mobile Inspector Drawer (Right-docked, 3D showroom visible on left, full height) */}
       {mobileDrawer === "inspect" && (
         <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
@@ -4788,17 +4955,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       {/* 📱 MOBILE QUICK ACTION BOTTOM DOCK FOR FLOOR STAFF */}
       <div className="lg:hidden absolute bottom-2.5 left-2 sm:left-3 right-2 sm:right-3 z-30 flex items-center justify-between gap-1 p-1 rounded-2xl glass-panel border border-amber-500/40 bg-stone-950/90 shadow-2xl pointer-events-auto">
         <button
-          onClick={() => setMobileDrawer(mobileDrawer === "inspect" ? "none" : "inspect")}
+          onClick={() => {
+            setMobileDrawer(mobileDrawer === "search" ? "none" : "search");
+            setIsSearchOpen(true);
+          }}
           className={`flex-1 py-1.5 px-1.5 rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-all border ${
-            mobileDrawer === "inspect" || (activeDisplayProduct && mobileDrawer === "none")
-              ? "bg-amber-500/25 border-amber-500/70 text-amber-300"
+            mobileDrawer === "search" || searchedProduct
+              ? "bg-amber-500 text-stone-950 border-amber-300 font-bold shadow-md shadow-amber-500/30"
               : "border-stone-800 text-stone-300 hover:text-white"
           }`}
+          title="Search all 60 products across showroom"
         >
-          <Search className="w-3 h-3 text-amber-400" />
-          <span className="truncate">
-            {hoveredMannequin ? hoveredMannequin.badge : activeDisplayProduct ? "Item" : "Inspect"}
-          </span>
+          <Search className={`w-3 h-3 ${mobileDrawer === "search" || searchedProduct ? "text-stone-950" : "text-amber-400"}`} />
+          <span className="truncate">Search</span>
         </button>
 
         <button
