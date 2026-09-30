@@ -1,0 +1,64 @@
+{
+  "name": "Velocity Retail - 3D Autonomous AI Showroom",
+  "short_name": "Velocity",
+  "description": "Autonomous 3D AI Retail Showroom, Real-Time Planogram Optimization & Merchandising Platform",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui",
+    "browser"
+  ],
+  "orientation": "any",
+  "background_color": "#0c0a09",
+  "theme_color": "#ea580c",
+  "categories": [
+    "business",
+    "shopping",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "3D Showroom",
+      "short_name": "Showroom",
+      "description": "Open interactive 3D showroom and floor plan",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Floor Tasks",
+      "short_name": "Tasks",
+      "description": "Floor staff swap checklist and execution",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

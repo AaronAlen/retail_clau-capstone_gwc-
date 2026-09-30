@@ -18,3 +18,18 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
     </Provider>
   </React.StrictMode>
 );
+
+// Register PWA Service Worker for offline capability & mobile installation
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        console.log("🚀 Velocity Retail PWA Service Worker active:", registration.scope);
+      })
+      .catch((error) => {
+        console.warn("PWA Service Worker registration skipped:", error);
+      });
+  });
+}
+

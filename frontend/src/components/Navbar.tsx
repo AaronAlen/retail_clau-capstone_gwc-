@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
 import { RootState } from "../store/store";
-import { Bell, Sparkles, LogOut, AlertCircle, Menu } from "lucide-react";
+import { Bell, Sparkles, LogOut, AlertCircle, Menu, Download } from "lucide-react";
 
 interface NavbarProps {
   title: string;
@@ -24,6 +24,49 @@ const Navbar: React.FC<NavbarProps> = ({
   const user = useSelector((state: RootState) => state.auth.user);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return (
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true
+    );
+  });
+
+  useEffect(() => {
+    const handleBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === "accepted") {
+        setIsInstalled(true);
+      }
+      setDeferredPrompt(null);
+    } else {
+      alert(
+        "📱 To install Velocity Retail on your device:\n\n• On iOS (Safari): Tap the Share button at the bottom and choose 'Add to Home Screen'.\n• On Android (Chrome): Tap the 3 dots menu and select 'Install App' or 'Add to Home Screen'.\n• On Desktop (Chrome/Edge): Click the Install icon in the browser address bar."
+      );
+    }
+  };
 
   // Lock body scroll when logout confirmation is open
   useEffect(() => {
@@ -61,6 +104,19 @@ const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        {/* 📱 PWA Install App Button */}
+        {!isInstalled && (
+          <button
+            onClick={handleInstallClick}
+            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-stone-800 bg-white hover:bg-[#F2E8D5] border border-[#E5D7BE] transition-all shadow-sm hover:scale-[1.02] cursor-pointer shrink-0"
+            title="Install Velocity Retail App on your mobile device or computer (PWA)"
+          >
+            <Download className="w-3.5 h-3.5 text-orange-600" />
+            <span className="hidden sm:inline">Install App</span>
+            <span className="sm:hidden text-[11px]">Install</span>
+          </button>
+        )}
+
         {/* AI Copilot Launch Button */}
         {onOpenCopilot && (
           <button

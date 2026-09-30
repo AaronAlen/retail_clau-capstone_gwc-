@@ -1180,25 +1180,31 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     scene.background = new THREE.Color(0xf1f5f9); // Crisp luxury boutique daylight
     scene.fog = new THREE.FogExp2(0xf1f5f9, 0.009);
 
-    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 150);
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.5, 150);
     camera.position.set(0, 20, 26);
     camera.lookAt(0, 1.5, 0);
 
     const renderer = new THREE.WebGLRenderer({
       antialias: true,
       powerPreference: "high-performance",
-      precision: "mediump", // Medium precision for high FPS on Intel UHD Graphics
+      precision: "highp", // High precision to eliminate mobile GPU z-fighting and texture flicker
+      logarithmicDepthBuffer: true, // Prevents depth buffer fighting between floor, grid and platforms
       depth: true,
       stencil: false,
     });
     renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25)); // Capped at 1.25x for ultra-fast initial WebGL shader compilation and smooth 60 FPS
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75)); // Crisp rendering on mobile & Retina screens
     renderer.shadowMap.enabled = false; // Disabled shadowMap to maintain 60 FPS
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.25;
 
+    const domElement = renderer.domElement;
+    domElement.style.touchAction = "none";
+    domElement.style.userSelect = "none";
+    (domElement.style as any).webkitUserSelect = "none";
+
     container.innerHTML = "";
-    container.appendChild(renderer.domElement);
+    container.appendChild(domElement);
 
     // --- DAYLIGHT ARCHITECTURAL LIGHTING ---
     const hemiLight = new THREE.HemisphereLight(0xffffff, 0xcfd8dc, 1.45);
@@ -1216,12 +1222,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     const SHOWROOM_WIDTH = 36;
     const SHOWROOM_DEPTH = 30;
 
-    // Lightweight marble grid
+    // Lightweight marble grid with polygon offset to guarantee zero z-fighting
     const floorGeo = new THREE.PlaneGeometry(SHOWROOM_WIDTH, SHOWROOM_DEPTH);
     const floorMat = new THREE.MeshStandardMaterial({
       color: 0xf8fafc,
       roughness: 0.22,
       metalness: 0.08,
+      polygonOffset: true,
+      polygonOffsetFactor: 1,
+      polygonOffsetUnits: 1,
     });
     const floorMesh = new THREE.Mesh(floorGeo, floorMat);
     floorMesh.rotation.x = -Math.PI / 2;
@@ -1229,16 +1238,22 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     scene.add(floorMesh);
 
     const grid = new THREE.GridHelper(SHOWROOM_WIDTH, 36, 0xcfd8dc, 0xe2e8f0);
-    grid.position.y = 0.01;
+    grid.position.y = 0.02;
+    if (grid.material) {
+      const gMat = grid.material as THREE.Material;
+      gMat.depthWrite = false;
+      gMat.transparent = true;
+      gMat.opacity = 0.85;
+    }
     scene.add(grid);
 
     // Perimeter Amber/Gold Accent Border
-    const perimeterMat = new THREE.MeshBasicMaterial({ color: 0xd97706 });
+    const perimeterMat = new THREE.MeshBasicMaterial({ color: 0xd97706, depthWrite: false });
     const perimeterGeo = new THREE.RingGeometry(18.0, 18.08, 4);
     const perimeter = new THREE.Mesh(perimeterGeo, perimeterMat);
     perimeter.rotation.x = -Math.PI / 2;
     perimeter.rotation.z = Math.PI / 4;
-    perimeter.position.y = 0.02;
+    perimeter.position.y = 0.025;
     scene.add(perimeter);
 
     // Gallery Walls (Warm Museum Alabaster)
@@ -2717,6 +2732,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     const onTouchMove = (e: TouchEvent) => {
       if (isMouseOverUIRef.current) return;
       if (e.touches.length === 1 && isDragging) {
+        if (e.cancelable) e.preventDefault();
         const deltaX = e.touches[0].clientX - prevMouseX;
         const deltaY = e.touches[0].clientY - prevMouseY;
         prevMouseX = e.touches[0].clientX;
@@ -2725,6 +2741,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         targetTheta -= deltaX * 0.007;
         targetPhi = Math.max(0.12, Math.min(Math.PI / 2.1, targetPhi - deltaY * 0.007));
       } else if (e.touches.length === 2 && initialPinchDist > 0) {
+        if (e.cancelable) e.preventDefault();
         const dx = e.touches[0].clientX - e.touches[1].clientX;
         const dy = e.touches[0].clientY - e.touches[1].clientY;
         const dist = Math.hypot(dx, dy);
@@ -2746,17 +2763,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       }
     };
 
-    const domElement = renderer.domElement;
     domElement.addEventListener("mousedown", onMouseDown);
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
     domElement.addEventListener("wheel", onWheel, { passive: false });
     domElement.addEventListener("click", onClick);
-    domElement.addEventListener("touchstart", onTouchStart, { passive: true });
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    domElement.addEventListener("touchstart", onTouchStart, { passive: false });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
 
-    // --- ANIMATION LOOP (LOCKED TO 30 FPS FOR ROCK-SOLID SMOOTHNESS) ---
+    // --- ANIMATION LOOP (SYNCHRONIZED WITH HARDWARE V-SYNC FOR BUTTERY-SMOOTH MOBILE FPS) ---
     let reqId: number;
     const clock = new THREE.Clock();
     let isRenderingActive = true;
@@ -2769,14 +2785,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     );
     visibilityObserver.observe(container);
 
-    let lastRenderTimestamp = 0;
     const animate = () => {
       reqId = requestAnimationFrame(animate);
       if (!isRenderingActive) return;
-
-      const now = performance.now();
-      if (now - lastRenderTimestamp < 32) return; // 30 FPS throttle
-      lastRenderTimestamp = now;
 
       const elapsed = clock.getElapsedTime();
       const delta = Math.min(clock.getDelta(), 0.05);
@@ -3014,17 +3025,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
     animate();
 
-    const handleResize = () => {
+    let resizeRafId: number | null = null;
+    const doResize = () => {
       if (!container) return;
       const rect = container.getBoundingClientRect();
-      width = rect.width || container.clientWidth || window.innerWidth;
-      height = rect.height || container.clientHeight || window.innerHeight || 740;
+      const newWidth = rect.width || container.clientWidth || window.innerWidth;
+      const newHeight = rect.height || container.clientHeight || window.innerHeight || 740;
+      if (newWidth <= 0 || newHeight <= 0) return;
+      if (Math.abs(newWidth - width) < 1 && Math.abs(newHeight - height) < 1) return;
+      width = newWidth;
+      height = newHeight;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     };
+
+    const handleResize = () => {
+      if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
+      resizeRafId = requestAnimationFrame(doResize);
+    };
+
+    const handleOrientationChange = () => {
+      // Allow mobile browser viewport geometry 80ms to settle during screen rotation
+      setTimeout(handleResize, 80);
+    };
+
     window.addEventListener("resize", handleResize);
-    window.addEventListener("orientationchange", handleResize);
+    window.addEventListener("orientationchange", handleOrientationChange);
 
     const resizeObserver = new ResizeObserver(() => {
       handleResize();
@@ -3033,10 +3060,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
     return () => {
       cancelAnimationFrame(reqId);
+      if (resizeRafId !== null) cancelAnimationFrame(resizeRafId);
       visibilityObserver.disconnect();
       resizeObserver.disconnect();
       window.removeEventListener("resize", handleResize);
-      window.removeEventListener("orientationchange", handleResize);
+      window.removeEventListener("orientationchange", handleOrientationChange);
       domElement.removeEventListener("mousedown", onMouseDown);
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
@@ -3045,7 +3073,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       domElement.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
       window.removeEventListener("touchend", onTouchEnd);
-      window.removeEventListener("resize", handleResize);
 
       // Cleanup
       scene.traverse((obj) => {
@@ -4642,29 +4669,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       }`}
     >
       {/* 3D WebGL Canvas */}
-      <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
+      <div ref={containerRef} className="w-full h-full cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "none" }} />
 
-      {/* 📱 MOBILE LANDSCAPE FLOATING CONTROL PILL */}
+      {/* 📱 MOBILE LANDSCAPE FLOATING TITLE BADGE (Clean, minimal, no buttons or strange backdrops) */}
       {(isMobileLandscape || isForcedRotate90) && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-auto flex items-center gap-2">
-          <div className="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2.5 border border-amber-400 shadow-2xl bg-stone-950/95 text-xs font-black text-amber-300">
-            <span className="flex items-center gap-1.5 text-white">
-              <Smartphone className="w-4 h-4 text-amber-400 rotate-90 animate-pulse" />
-              <span>Landscape Runway</span>
-            </span>
-            <button
-              onClick={() => setIsForcedRotate90((prev) => !prev)}
-              className="px-2 py-0.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 text-[10px] font-bold border border-amber-500/40 cursor-pointer"
-            >
-              🔄 {isForcedRotate90 ? "Normal" : "Force 90°"}
-            </button>
-            <button
-              onClick={handleToggleMobileLandscape}
-              className="flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-extrabold shadow cursor-pointer transition-all"
-            >
-              <X className="w-3.5 h-3.5" />
-              <span>Exit</span>
-            </button>
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 pointer-events-none flex items-center justify-center">
+          <div className="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-amber-500/50 shadow-2xl bg-stone-950/90 text-xs font-black text-amber-300">
+            <Smartphone className="w-4 h-4 text-amber-400 rotate-90" />
+            <span className="text-white font-extrabold tracking-wide">Landscape Runway</span>
           </div>
         </div>
       )}
@@ -4801,20 +4813,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             <span className="hidden xl:inline">{isOverlayVisible ? "Hide Overlay" : "Show Overlay"}</span>
           </button>
 
-          {/* 📱 360° Horizontal Runway Mode Button */}
-          <button
-            onClick={toggleHorizontalView}
-            className={`px-2 sm:px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border shrink-0 ${
-              isHorizontalMode
-                ? "bg-amber-500 text-stone-950 border-amber-400 shadow-lg shadow-amber-500/30 font-black"
-                : "glass-panel text-amber-200 border-amber-500/40 hover:text-white"
-            }`}
-            title={isHorizontalMode ? "Switch to 360° Free Orbit" : "Focus on 3-Station Horizontal Runway View"}
-          >
-            <Smartphone className="w-3.5 h-3.5 rotate-90 shrink-0" />
-            <span className="hidden 2xl:inline">{isHorizontalMode ? "360°" : "Runway"}</span>
-          </button>
-
           {/* Auto Rotate Button */}
           <button
             onClick={() => setAutoRotate((prev) => !prev)}
@@ -4873,17 +4871,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           </button>
         </div>
       </div>
-
-      {/* 📱 HORIZONTAL RUNWAY MODE NOTIFICATION PILL */}
-      {isHorizontalMode && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-          <div className="glass-panel px-3.5 py-1.5 rounded-full flex items-center gap-2 border border-amber-500/50 shadow-xl bg-stone-950/90 text-[11px] font-black text-amber-300">
-            <Smartphone className="w-3.5 h-3.5 rotate-90 text-amber-400 shrink-0" />
-            <span>3-Station Horizontal Runway View Active</span>
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          </div>
-        </div>
-      )}
 
       {/* 🌟 2. LEFT SIDE OVERLAY: PRODUCT DETAIL & EXACT 3D COORDINATES ON HOVER (DESKTOP) */}
       {isOverlayVisible && (hoveredMannequin || activeDisplayProduct) && (
@@ -4995,20 +4982,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         >
           <ClipboardCheck className="w-3 h-3 text-amber-400" />
           <span>⚡ Tasks</span>
-        </button>
-
-        {/* 📱 Mobile Landscape 3D View / Rotate Button */}
-        <button
-          onClick={handleToggleMobileLandscape}
-          className={`py-1.5 px-2 rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-all border shrink-0 ${
-            isMobileLandscape || isForcedRotate90
-              ? "bg-amber-500 text-stone-950 border-amber-400 shadow-md shadow-amber-500/30 font-black"
-              : "border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
-          }`}
-          title="Rotate to Landscape 3D Runway View"
-        >
-          <RotateCw className="w-3 h-3 text-amber-400" />
-          <span>{isMobileLandscape || isForcedRotate90 ? "Exit" : "3D Land"}</span>
         </button>
 
         {/* Fullscreen Button for Mobile */}
