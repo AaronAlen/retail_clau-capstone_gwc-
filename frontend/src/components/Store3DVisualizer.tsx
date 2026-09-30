@@ -525,10 +525,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       else if (cat.includes("jean") || cat.includes("denim")) cupboardProds = jeans;
       else if (cat.includes("t-shirt") || cat.includes("tee")) cupboardProds = tshirts;
 
-      // Available neighbors inside the anchor's cupboard (must not be anchor, must not be one of the partners, must not be previously claimed)
+      // Available neighbors inside the anchor's cupboard (must not be anchor, must not be one of the partners)
       const partnerIds = new Set(partners.map((p) => p._id));
       const availNeighbors = cupboardProds.filter(
-        (p) => p._id !== anchor._id && !partnerIds.has(p._id) && !globallyUsedNeighborIds.has(p._id)
+        (p) => p._id !== anchor._id && !partnerIds.has(p._id)
       );
 
       // Slower-moving neighbor or nearest slot to anchor in this cupboard
@@ -539,18 +539,25 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         return Math.abs(aSku - fSku) - Math.abs(bSku - fSku);
       });
 
+      // Guarantee exactly 4 distinct neighbor items within this cupboard
+      const selectedNeighbors: Product[] = [];
+      for (const cand of availNeighbors) {
+        if (selectedNeighbors.length >= partners.length) break;
+        selectedNeighbors.push(cand);
+      }
+      for (const cand of cupboardProds) {
+        if (selectedNeighbors.length >= partners.length) break;
+        if (cand._id !== anchor._id && !selectedNeighbors.some((n) => n._id === cand._id)) {
+          selectedNeighbors.push(cand);
+        }
+      }
+
       // 🎯 Dedicated 1-to-1 mutual bilateral swap between Anchor Cupboard and each Partner Cupboard
       return partners.map((suggested, pIdx) => {
-        let neighbor = availNeighbors[pIdx];
-        if (!neighbor) {
-          neighbor = cupboardProds.find((p) => p._id !== anchor._id && p._id !== suggested._id) || cupboardProds[0];
-        }
-        if (neighbor) {
-          globallyUsedNeighborIds.add(neighbor._id);
-        }
+        const neighbor = selectedNeighbors[pIdx] || cupboardProds.find((p) => p._id !== anchor._id) || cupboardProds[0];
         return {
           suggested,
-          neighbor: neighbor || suggested,
+          neighbor,
           index: pIdx,
           colorHex: colors[(sugIdx + pIdx) % colors.length],
           colorCss: colorHexes[(sugIdx + pIdx) % colorHexes.length],
@@ -2582,26 +2589,35 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           }
         });
       } else {
-        allFlattenedCupboardPairs.forEach((pair) => {
-          const itemS = productGroupsMap.get(pair.suggested._id);
-          const itemN = productGroupsMap.get(pair.neighbor._id);
-          const isForSelectedPlanogram =
-            Boolean(planogramAppliedRef.current) &&
-            swapPairs.some((p) => p.suggested._id === pair.suggested._id);
-          const isExecuted =
-            Boolean(executedFloorItemsRef.current[pair.suggested._id]) ||
-            isForSelectedPlanogram;
+        // Reset all products to baseline shelf position first so other cupboards are undisturbed
+        productGroupsMap.forEach((entry) => {
+          entry.group.position.copy(entry.originalPos);
+          entry.group.visible = true;
+          entry.group.scale.setScalar(1.0);
+        });
 
-          if (itemS && itemN) {
-            if (isExecuted) {
+        // If planogram applied, swap ONLY the current active station's 4 pairs!
+        if (planogramAppliedRef.current) {
+          swapPairs.forEach((pair) => {
+            const itemS = productGroupsMap.get(pair.suggested._id);
+            const itemN = productGroupsMap.get(pair.neighbor._id);
+            if (itemS && itemN) {
               itemS.group.position.copy(itemN.originalPos);
               itemN.group.position.copy(itemS.originalPos);
-            } else {
-              itemS.group.position.copy(itemS.originalPos);
-              itemN.group.position.copy(itemN.originalPos);
             }
-            itemS.group.visible = true;
-            itemN.group.visible = true;
+          });
+        }
+
+        // Apply any specific floor tasks executed by staff
+        Object.keys(executedFloorItemsRef.current).forEach((executedId) => {
+          const matchingPair = allFlattenedCupboardPairs.find((p) => p.suggested._id === executedId);
+          if (matchingPair) {
+            const itemS = productGroupsMap.get(matchingPair.suggested._id);
+            const itemN = productGroupsMap.get(matchingPair.neighbor._id);
+            if (itemS && itemN) {
+              itemS.group.position.copy(itemN.originalPos);
+              itemN.group.position.copy(itemS.originalPos);
+            }
           }
         });
       }
@@ -3016,8 +3032,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         const arcY = Math.sin(progress * Math.PI) * 4.2;
 
         if (isHeroMode) {
-          // 🌟 HERO SHOWCASE: All runway outfits fly to their dedicated mannequins across ALL hero pairs/stations!
-          heroRunwayOutfits.forEach((hero) => {
+          // 🌟 HERO SHOWCASE: Dedicated 4-piece outfit flies to selected mannequin
+          const activeHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
+          const specificIds = flightAnim.specificProductIds;
+          const targetHeroes = specificIds
+            ? heroRunwayOutfits.filter((hero) => {
+                const hIds = [hero.outfit.jacket._id, hero.outfit.tshirt._id, hero.outfit.pants._id, hero.outfit.shoes._id];
+                return hIds.some((id) => specificIds.has(id));
+              })
+            : [activeHero];
+          targetHeroes.forEach((hero) => {
             const m = mannequins[hero.index];
             if (!m) return;
 
@@ -3035,7 +3059,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             let hasFlightItemForThisHero = false;
             animItems.forEach(({ id, group, target }) => {
               if (!group) return;
-              if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(id)) return;
+              if (specificIds && !specificIds.has(id)) return;
               hasFlightItemForThisHero = true;
               const pStart = group.originalPos;
               const pEnd = target;
@@ -3063,7 +3087,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             });
 
             // Smooth color morphing for this mannequin during flight if its items are flying
-            if (hasFlightItemForThisHero || !flightAnim.specificProductIds) {
+            if (hasFlightItemForThisHero || !specificIds) {
               const targetJHex = getColorHexFromName(hero.outfit.jacket.color, hero.colorHex);
               const targetTHex = getColorHexFromName(hero.outfit.tshirt.color, 0xf1f5f9);
               const targetPHex = getColorHexFromName(hero.outfit.pants.color, 0x1e293b);
@@ -3083,9 +3107,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             }
           });
         } else {
-          // 🏬 CUPBOARD MUTUAL 1:1 SWAP: Outfits swap cleanly between cupboards across ALL pairs
-          allFlattenedCupboardPairs.forEach((pair) => {
-            if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(pair.suggested._id)) return;
+          // 🏬 CUPBOARD MUTUAL 1:1 SWAP: Only animate the 4 pairs of the active cupboard!
+          const specificIds = flightAnim.specificProductIds;
+          const targetPairs = specificIds
+            ? allFlattenedCupboardPairs.filter(
+                (p) =>
+                  specificIds.has(p.suggested._id) ||
+                  specificIds.has(p.neighbor._id)
+              )
+            : swapPairs;
+          targetPairs.forEach((pair) => {
             const itemS = productGroupsMap.get(pair.suggested._id);
             const itemN = productGroupsMap.get(pair.neighbor._id);
             if (!itemS || !itemN) return;
@@ -3120,7 +3151,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         if (progress >= 1.0) {
           flightAnim.active = false;
           if (isHeroMode) {
-            heroRunwayOutfits.forEach((hero) => {
+            const activeHero = heroRunwayOutfits[selectedSuggestionIdx] || heroRunwayOutfits[0];
+            const specificIds = flightAnim.specificProductIds;
+            const targetHeroes = specificIds
+              ? heroRunwayOutfits.filter((hero) => {
+                  const hIds = [hero.outfit.jacket._id, hero.outfit.tshirt._id, hero.outfit.pants._id, hero.outfit.shoes._id];
+                  return hIds.some((id) => specificIds.has(id));
+                })
+              : [activeHero];
+            targetHeroes.forEach((hero) => {
               const m = mannequins[hero.index];
               if (!m) return;
 
@@ -3139,7 +3178,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               let affectedItemsCount = 0;
               animItems.forEach(({ id, group, target }) => {
                 if (!group) return;
-                if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(id)) return;
+                if (specificIds && !specificIds.has(id)) return;
                 affectedItemsCount++;
                 group.group.rotation.y = 0;
                 if (flightAnim.forward) {
@@ -3156,7 +3195,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               });
 
               // Only update this mannequin if its items were part of this flight or full planogram
-              if (affectedItemsCount > 0 || !flightAnim.specificProductIds) {
+              if (affectedItemsCount > 0 || !specificIds) {
                 if (flightAnim.forward) {
                   m.updateOutfit(hero.outfit);
                 } else {
@@ -3165,8 +3204,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               }
             });
           } else {
-            allFlattenedCupboardPairs.forEach((pair) => {
-              if (flightAnim.specificProductIds && !flightAnim.specificProductIds.has(pair.suggested._id)) return;
+            const specificIds = flightAnim.specificProductIds;
+            const targetPairs = specificIds
+              ? allFlattenedCupboardPairs.filter(
+                  (p) =>
+                    specificIds.has(p.suggested._id) ||
+                    specificIds.has(p.neighbor._id)
+                )
+              : swapPairs;
+            targetPairs.forEach((pair) => {
               const itemS = productGroupsMap.get(pair.suggested._id);
               const itemN = productGroupsMap.get(pair.neighbor._id);
               if (itemS && itemN) {
