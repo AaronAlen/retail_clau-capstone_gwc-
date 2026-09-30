@@ -652,6 +652,24 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         catalogProducts[3] ||
         defaultFallbackPartner;
 
+      const candJacket =
+        jackets.find((j) => String(j._id) !== String(jacket._id)) ||
+        jackets[(idx + 4) % jackets.length] ||
+        jacket;
+      const candTshirt =
+        (tshirts.length > 0 ? tshirts : shirts).find((t) => String(t._id) !== String(tshirt._id)) ||
+        tshirts[(idx + 4) % (tshirts.length || 1)] ||
+        shirts[0] ||
+        tshirt;
+      const candPants =
+        jeans.find((p) => String(p._id) !== String(pants._id)) ||
+        jeans[(idx + 4) % jeans.length] ||
+        pants;
+      const candShoe =
+        shoes.find((s) => String(s._id) !== String(shoe._id)) ||
+        shoes[(idx + 4) % shoes.length] ||
+        shoe;
+
       const jLoc = getProductShelfLocation(jacket);
       const tLoc = getProductShelfLocation(tshirt);
       const pLoc = getProductShelfLocation(pants);
@@ -676,6 +694,12 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           tshirt,
           pants,
           shoes: shoe,
+        },
+        displacedOutfit: {
+          jacket: candJacket,
+          tshirt: candTshirt,
+          pants: candPants,
+          shoes: candShoe,
         },
         locations: {
           jacket: jLoc,
@@ -2027,40 +2051,48 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       standPole.position.y = 0.54;
       mGroup.add(standPole);
 
-      // 1. Italian Handcrafted Footwear (Shoes Sculpt on Pedestal)
+      // 1. Italian Handcrafted Luxury Footwear (Resting prominently on top of Pedestal, y >= 0.165)
       const shoesMat = new THREE.MeshStandardMaterial({
         color: 0x0f172a, // Default Charcoal Leather
         roughness: 0.35,
         metalness: 0.25,
       });
 
-      // Left Shoe (Sole + Leather Upper + Sculpted Toe Cap)
-      const leftShoeSole = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.04, 0.28), darkWalnutMat);
-      leftShoeSole.position.set(-0.13, 0.03, 0.03);
+      // Left Shoe (Sole + Leather Upper + Sculpted Toe Cap + Heel Welt)
+      const leftShoeSole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.30), darkWalnutMat);
+      leftShoeSole.position.set(-0.13, 0.185, 0.04);
       mGroup.add(leftShoeSole);
 
-      const leftShoeUpper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), shoesMat);
-      leftShoeUpper.position.set(-0.13, 0.08, 0.02);
+      const leftShoeUpper = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.26), shoesMat);
+      leftShoeUpper.position.set(-0.13, 0.225, 0.03);
       mGroup.add(leftShoeUpper);
 
-      const leftToeCap = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), shoesMat);
-      leftToeCap.scale.set(1.0, 0.65, 1.2);
-      leftToeCap.position.set(-0.13, 0.06, 0.14);
+      const leftToeCap = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 12), shoesMat);
+      leftToeCap.scale.set(1.0, 0.7, 1.35);
+      leftToeCap.position.set(-0.13, 0.21, 0.15);
       mGroup.add(leftToeCap);
 
-      // Right Shoe (Sole + Leather Upper + Sculpted Toe Cap)
-      const rightShoeSole = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.04, 0.28), darkWalnutMat);
-      rightShoeSole.position.set(0.13, 0.03, 0.03);
+      const leftShoeCollar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.12), shoesMat);
+      leftShoeCollar.position.set(-0.13, 0.265, -0.01);
+      mGroup.add(leftShoeCollar);
+
+      // Right Shoe (Sole + Leather Upper + Sculpted Toe Cap + Heel Welt)
+      const rightShoeSole = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.04, 0.30), darkWalnutMat);
+      rightShoeSole.position.set(0.13, 0.185, 0.04);
       mGroup.add(rightShoeSole);
 
-      const rightShoeUpper = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 0.25), shoesMat);
-      rightShoeUpper.position.set(0.13, 0.08, 0.02);
+      const rightShoeUpper = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.08, 0.26), shoesMat);
+      rightShoeUpper.position.set(0.13, 0.225, 0.03);
       mGroup.add(rightShoeUpper);
 
-      const rightToeCap = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), shoesMat);
-      rightToeCap.scale.set(1.0, 0.65, 1.2);
-      rightToeCap.position.set(0.13, 0.06, 0.14);
+      const rightToeCap = new THREE.Mesh(new THREE.SphereGeometry(0.065, 16, 12), shoesMat);
+      rightToeCap.scale.set(1.0, 0.7, 1.35);
+      rightToeCap.position.set(0.13, 0.21, 0.15);
       mGroup.add(rightToeCap);
+
+      const rightShoeCollar = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.04, 0.12), shoesMat);
+      rightShoeCollar.position.set(0.13, 0.265, -0.01);
+      mGroup.add(rightShoeCollar);
 
       // 2. Tailored Straight-Leg Trousers (Masculine Athletic Stance with Cuffs & Belt)
       const pantsMat = new THREE.MeshStandardMaterial({
@@ -2068,21 +2100,21 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         roughness: 0.65,
         metalness: 0.15,
       });
-      const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.07, 0.82, 16), pantsMat);
-      leftLeg.position.set(-0.13, 0.58, 0);
+      const leftLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.076, 0.72, 16), pantsMat);
+      leftLeg.position.set(-0.13, 0.68, 0);
       mGroup.add(leftLeg);
 
-      const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.07, 0.82, 16), pantsMat);
-      rightLeg.position.set(0.13, 0.58, 0);
+      const rightLeg = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.076, 0.72, 16), pantsMat);
+      rightLeg.position.set(0.13, 0.68, 0);
       mGroup.add(rightLeg);
 
-      // Trouser Ankle Cuffs
-      const leftCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.082, 0.06, 16), pantsMat);
-      leftCuff.position.set(-0.13, 0.18, 0);
+      // Trouser Ankle Cuffs (Resting seamlessly over the luxury shoes)
+      const leftCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.086, 0.06, 16), pantsMat);
+      leftCuff.position.set(-0.13, 0.29, 0);
       mGroup.add(leftCuff);
 
-      const rightCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.082, 0.06, 16), pantsMat);
-      rightCuff.position.set(0.13, 0.18, 0);
+      const rightCuff = new THREE.Mesh(new THREE.CylinderGeometry(0.082, 0.086, 0.06, 16), pantsMat);
+      rightCuff.position.set(0.13, 0.29, 0);
       mGroup.add(rightCuff);
 
       const pelvis = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.20, 0.20, 16), pantsMat);
@@ -2256,7 +2288,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
       // C. Footwear Hitbox (Shoes / Footwear):
       const shoesHitBox = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.30, 0.50), sharedHitBoxMat);
-      shoesHitBox.position.set(0, 0.14, 0.03);
+      shoesHitBox.position.set(0, 0.23, 0.03);
       shoesHitBox.userData = { isMannequinPart: true, part: "shoes", mannequinIndex: cfg.index };
       mGroup.add(shoesHitBox);
       interactiveObjects.push(shoesHitBox);
@@ -2275,7 +2307,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       );
       const worldShoes = new THREE.Vector3(
         cfg.x + runwayGroup.position.x,
-        cfg.y + 0.12 + 0.14,
+        cfg.y + 0.12 + 0.23,
         cfg.z + runwayGroup.position.z
       );
 
@@ -2362,6 +2394,62 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     });
 
     scene.add(runwayGroup);
+
+    // 🌟 Displaced Garment Meshes for Hero Runway Mannequins (for mutual 2-way swaps back to shelf)
+    const heroDisplacedGroupsMap = new Map<
+      number,
+      {
+        jacket: THREE.Group;
+        tshirt: THREE.Group;
+        pants: THREE.Group;
+        shoes: THREE.Group;
+      }
+    >();
+
+    heroRunwayOutfits.forEach((hero) => {
+      const dispJacket = createProductMesh(
+        hero.displacedOutfit.jacket,
+        hero.locations.jacket.x,
+        hero.locations.jacket.y,
+        hero.locations.jacket.z
+      );
+      dispJacket.visible = false;
+      scene.add(dispJacket);
+
+      const dispTshirt = createProductMesh(
+        hero.displacedOutfit.tshirt,
+        hero.locations.tshirt.x,
+        hero.locations.tshirt.y,
+        hero.locations.tshirt.z
+      );
+      dispTshirt.visible = false;
+      scene.add(dispTshirt);
+
+      const dispPants = createProductMesh(
+        hero.displacedOutfit.pants,
+        hero.locations.pants.x,
+        hero.locations.pants.y,
+        hero.locations.pants.z
+      );
+      dispPants.visible = false;
+      scene.add(dispPants);
+
+      const dispShoes = createProductMesh(
+        hero.displacedOutfit.shoes,
+        hero.locations.shoes.x,
+        hero.locations.shoes.y,
+        hero.locations.shoes.z
+      );
+      dispShoes.visible = false;
+      scene.add(dispShoes);
+
+      heroDisplacedGroupsMap.set(hero.index, {
+        jacket: dispJacket,
+        tshirt: dispTshirt,
+        pants: dispPants,
+        shoes: dispShoes,
+      });
+    });
 
     // Save product groups reference for search targeting
     productGroupsMapRef.current = productGroupsMap;
@@ -2712,15 +2800,25 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           const isPantsActive = Boolean(executedFloorItemsRef.current[hero.outfit.pants._id] || executedFloorItemsRef.current[String(hero.outfit.pants._id)]) || isPlanogramSimulated;
           const isShoesActive = Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id] || executedFloorItemsRef.current[String(hero.outfit.shoes._id)]) || isPlanogramSimulated;
 
+          const dispMeshes = heroDisplacedGroupsMap.get(hero.index);
+
           // 1. Outerwear Jacket
           if (jGroup) {
             if (isJacketActive) {
               jGroup.group.position.copy(m.worldChestPos);
               jGroup.group.visible = false;
+              if (dispMeshes?.jacket) {
+                dispMeshes.jacket.position.copy(jGroup.originalPos);
+                dispMeshes.jacket.visible = true;
+                dispMeshes.jacket.scale.setScalar(1.0);
+              }
             } else {
               jGroup.group.position.copy(jGroup.originalPos);
               jGroup.group.visible = true;
               jGroup.group.scale.setScalar(1.0);
+              if (dispMeshes?.jacket) {
+                dispMeshes.jacket.visible = false;
+              }
             }
           }
 
@@ -2729,10 +2827,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             if (isTshirtActive) {
               tGroup.group.position.copy(m.worldChestPos);
               tGroup.group.visible = false;
+              if (dispMeshes?.tshirt) {
+                dispMeshes.tshirt.position.copy(tGroup.originalPos);
+                dispMeshes.tshirt.visible = true;
+                dispMeshes.tshirt.scale.setScalar(1.0);
+              }
             } else {
               tGroup.group.position.copy(tGroup.originalPos);
               tGroup.group.visible = true;
               tGroup.group.scale.setScalar(1.0);
+              if (dispMeshes?.tshirt) {
+                dispMeshes.tshirt.visible = false;
+              }
             }
           }
 
@@ -2741,10 +2847,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             if (isPantsActive) {
               pGroup.group.position.copy(m.worldPantsPos);
               pGroup.group.visible = false;
+              if (dispMeshes?.pants) {
+                dispMeshes.pants.position.copy(pGroup.originalPos);
+                dispMeshes.pants.visible = true;
+                dispMeshes.pants.scale.setScalar(1.0);
+              }
             } else {
               pGroup.group.position.copy(pGroup.originalPos);
               pGroup.group.visible = true;
               pGroup.group.scale.setScalar(1.0);
+              if (dispMeshes?.pants) {
+                dispMeshes.pants.visible = false;
+              }
             }
           }
 
@@ -2753,10 +2867,18 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             if (isShoesActive) {
               sGroup.group.position.copy(m.worldShoesPos);
               sGroup.group.visible = false;
+              if (dispMeshes?.shoes) {
+                dispMeshes.shoes.position.copy(sGroup.originalPos);
+                dispMeshes.shoes.visible = true;
+                dispMeshes.shoes.scale.setScalar(1.0);
+              }
             } else {
               sGroup.group.position.copy(sGroup.originalPos);
               sGroup.group.visible = true;
               sGroup.group.scale.setScalar(1.0);
+              if (dispMeshes?.shoes) {
+                dispMeshes.shoes.visible = false;
+              }
             }
           }
 
@@ -3209,19 +3331,20 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             const m = mannequins[hero.index];
             if (!m) return;
 
+            const dispMeshes = heroDisplacedGroupsMap.get(hero.index);
             const jGroup = productGroupsMap.get(hero.outfit.jacket._id) || productGroupsMap.get(String(hero.outfit.jacket._id));
             const tGroup = productGroupsMap.get(hero.outfit.tshirt._id) || productGroupsMap.get(String(hero.outfit.tshirt._id));
             const pGroup = productGroupsMap.get(hero.outfit.pants._id) || productGroupsMap.get(String(hero.outfit.pants._id));
             const sGroup = productGroupsMap.get(hero.outfit.shoes._id) || productGroupsMap.get(String(hero.outfit.shoes._id));
             const animItems = [
-              { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos },
-              { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos },
-              { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos },
-              { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos },
+              { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos, dispGroup: dispMeshes?.jacket },
+              { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos, dispGroup: dispMeshes?.tshirt },
+              { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos, dispGroup: dispMeshes?.pants },
+              { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos, dispGroup: dispMeshes?.shoes },
             ];
 
             let hasFlightItemForThisHero = false;
-            animItems.forEach(({ id, group, target }) => {
+            animItems.forEach(({ id, group, target, dispGroup }) => {
               if (!group) return;
               if (specificIds && !specificIds.has(id)) return;
               hasFlightItemForThisHero = true;
@@ -3230,7 +3353,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               group.group.visible = true;
 
               if (flightAnim.forward) {
-                // Shelf -> Mannequin
+                // 1. Promoted item flies: Shelf -> Mannequin
                 group.group.position.x = pStart.x + (pEnd.x - pStart.x) * t;
                 group.group.position.y = pStart.y + (pEnd.y - pStart.y) * t + arcY;
                 group.group.position.z = pStart.z + (pEnd.z - pStart.z) * t;
@@ -3239,16 +3362,35 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                 // Box dissolves seamlessly into the mannequin as it arrives
                 const s = t < 0.65 ? 1.0 : Math.max(0.001, (1.0 - t) / 0.35);
                 group.group.scale.setScalar(s);
+
+                // 2. 🌟 Displaced mannequin alternate product flies: Mannequin -> Shelf!
+                if (dispGroup) {
+                  dispGroup.visible = true;
+                  dispGroup.position.x = pEnd.x + (pStart.x - pEnd.x) * t;
+                  dispGroup.position.y = pEnd.y + (pStart.y - pEnd.y) * t + arcY;
+                  dispGroup.position.z = pEnd.z + (pStart.z - pEnd.z) * t;
+                  dispGroup.rotation.y = -t * Math.PI * 4;
+                  dispGroup.scale.setScalar(1.0);
+                }
               } else {
-                // Mannequin -> Shelf (Reverse swap flight):
-                // Takes off directly from mannequin and arcs back across the showroom to the shelf!
+                // Revert flight:
+                // 1. Promoted shelf item flies: Mannequin -> Shelf
                 group.group.position.x = pEnd.x + (pStart.x - pEnd.x) * t;
                 group.group.position.y = pEnd.y + (pStart.y - pEnd.y) * t + arcY;
                 group.group.position.z = pEnd.z + (pStart.z - pEnd.z) * t;
                 group.group.rotation.y = -t * Math.PI * 4;
-
-                // 100% VISIBLE at scale 1.0 from the moment it lifts off the doll to landing on shelf!
                 group.group.scale.setScalar(1.0);
+
+                // 2. Displaced alternate item flies: Shelf -> Mannequin!
+                if (dispGroup) {
+                  dispGroup.visible = true;
+                  dispGroup.position.x = pStart.x + (pEnd.x - pStart.x) * t;
+                  dispGroup.position.y = pStart.y + (pEnd.y - pStart.y) * t + arcY;
+                  dispGroup.position.z = pStart.z + (pEnd.z - pStart.z) * t;
+                  dispGroup.rotation.y = t * Math.PI * 4;
+                  const s = t < 0.65 ? 1.0 : Math.max(0.001, (1.0 - t) / 0.35);
+                  dispGroup.scale.setScalar(s);
+                }
               }
             });
 
@@ -3339,19 +3481,20 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               const m = mannequins[hero.index];
               if (!m) return;
 
+              const dispMeshes = heroDisplacedGroupsMap.get(hero.index);
               const jGroup = productGroupsMap.get(hero.outfit.jacket._id) || productGroupsMap.get(String(hero.outfit.jacket._id));
               const tGroup = productGroupsMap.get(hero.outfit.tshirt._id) || productGroupsMap.get(String(hero.outfit.tshirt._id));
               const pGroup = productGroupsMap.get(hero.outfit.pants._id) || productGroupsMap.get(String(hero.outfit.pants._id));
               const sGroup = productGroupsMap.get(hero.outfit.shoes._id) || productGroupsMap.get(String(hero.outfit.shoes._id));
 
               const animItems = [
-                { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos },
-                { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos },
-                { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos },
-                { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos },
+                { id: String(hero.outfit.jacket._id), group: jGroup, target: m.worldChestPos, dispGroup: dispMeshes?.jacket },
+                { id: String(hero.outfit.tshirt._id), group: tGroup, target: m.worldChestPos, dispGroup: dispMeshes?.tshirt },
+                { id: String(hero.outfit.pants._id), group: pGroup, target: m.worldPantsPos, dispGroup: dispMeshes?.pants },
+                { id: String(hero.outfit.shoes._id), group: sGroup, target: m.worldShoesPos, dispGroup: dispMeshes?.shoes },
               ];
 
-              animItems.forEach(({ id, group, target }) => {
+              animItems.forEach(({ id, group, target, dispGroup }) => {
                 if (!group) return;
                 if (specificIds && !specificIds.has(id)) return;
                 group.group.rotation.y = 0;
@@ -3360,11 +3503,27 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   group.group.position.copy(target);
                   group.group.visible = false;
                   group.group.scale.setScalar(1.0);
+
+                  // 🌟 Displaced product lands squarely in shelf slot so slot is never empty!
+                  if (dispGroup) {
+                    dispGroup.position.copy(group.originalPos);
+                    dispGroup.visible = true;
+                    dispGroup.scale.setScalar(1.0);
+                    dispGroup.rotation.y = 0;
+                  }
                 } else {
                   // Revert swap: box back on shelf -> show box in shelf at original position!
                   group.group.position.copy(group.originalPos);
                   group.group.visible = true;
                   group.group.scale.setScalar(1.0);
+
+                  // Displaced product returns to mannequin and hides
+                  if (dispGroup) {
+                    dispGroup.position.copy(target);
+                    dispGroup.visible = false;
+                    dispGroup.scale.setScalar(1.0);
+                    dispGroup.rotation.y = 0;
+                  }
                 }
               });
 
@@ -4213,6 +4372,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               z: hero.worldTargetPos.z,
               zone: `${hero.badge} Mannequin Torso`,
             },
+            displaced: {
+              item: hero.displacedOutfit.jacket,
+              targetCoords: {
+                x: hero.locations.jacket.x,
+                y: hero.locations.jacket.y,
+                z: hero.locations.jacket.z,
+                zone: `${hero.locations.jacket.zone || "Executive Outerwear Cupboard"} (Slot ${hero.locations.jacket.slot || 1})`,
+              },
+            },
             origLoc: hero.locations.jacket,
           },
           {
@@ -4226,6 +4394,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               y: 1.70,
               z: hero.worldTargetPos.z,
               zone: `${hero.badge} Inner Top`,
+            },
+            displaced: {
+              item: hero.displacedOutfit.tshirt,
+              targetCoords: {
+                x: hero.locations.tshirt.x,
+                y: hero.locations.tshirt.y,
+                z: hero.locations.tshirt.z,
+                zone: `${hero.locations.tshirt.zone || "Formal Shirts Wardrobe"} (Slot ${hero.locations.tshirt.slot || 1})`,
+              },
             },
             origLoc: hero.locations.tshirt,
           },
@@ -4241,6 +4418,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               z: hero.worldTargetPos.z,
               zone: `${hero.badge} Mannequin Legs`,
             },
+            displaced: {
+              item: hero.displacedOutfit.pants,
+              targetCoords: {
+                x: hero.locations.pants.x,
+                y: hero.locations.pants.y,
+                z: hero.locations.pants.z,
+                zone: `${hero.locations.pants.zone || "Premium Denim Cupboard"} (Slot ${hero.locations.pants.slot || 1})`,
+              },
+            },
             origLoc: hero.locations.pants,
           },
           {
@@ -4254,6 +4440,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               y: 0.15,
               z: hero.worldTargetPos.z,
               zone: `${hero.badge} Pedestal`,
+            },
+            displaced: {
+              item: hero.displacedOutfit.shoes,
+              targetCoords: {
+                x: hero.locations.shoes.x,
+                y: hero.locations.shoes.y,
+                z: hero.locations.shoes.z,
+                zone: `${hero.locations.shoes.zone || "Footwear Vitrine Gallery"} (Slot ${hero.locations.shoes.slot || 1})`,
+              },
             },
             origLoc: hero.locations.shoes,
           },
@@ -4548,6 +4743,15 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                       <strong className="text-amber-200 truncate">{task.targetZone}</strong>
                     </div>
                   </div>
+
+                  {/* Displaced Alternate Product Return Route */}
+                  {task.displaced && task.displaced.item && (
+                    <div className="ml-7 flex items-center gap-1.5 text-[9px] bg-amber-500/10 border border-amber-500/30 text-amber-200 px-2 py-1 rounded-xl">
+                      <ArrowRightLeft className="w-3 h-3 text-amber-400 shrink-0" />
+                      <span className="text-amber-400 font-bold shrink-0">⇄ Displaced to Shelf:</span>
+                      <strong className="text-white truncate font-bold">{task.displaced.item.name}</strong>
+                    </div>
+                  )}
 
                   {/* Swapped By Staff Attribution Badge */}
                   {isExecuted && floorSwapStaffMap[task.item._id] && (
