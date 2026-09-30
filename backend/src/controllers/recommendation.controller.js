@@ -15,6 +15,27 @@ const sockets_1 = require("../sockets");
 const updateCoordinates_1 = require("../utils/updateCoordinates");
 
 /**
+ * Deterministically computes the canonical home shelf coordinates for any product.
+ * Guarantees that reverted or recommended products NEVER have undefined x, y, z or corrupted zones.
+ */
+const getBaselineCoordsForProduct = (product) => {
+    if (!product) return null;
+    let indexInCat = 0;
+    const nameMatch = (product.name || "").match(/#(\d+)/);
+    if (nameMatch && nameMatch[1]) {
+        const id = parseInt(nameMatch[1], 10);
+        indexInCat = (id - 1) % 12;
+    } else {
+        const skuNum = parseInt((product.sku || "").replace(/\D/g, ""), 10);
+        if (!isNaN(skuNum)) {
+            indexInCat = skuNum >= 1001 ? (skuNum - 1001) % 12 : (skuNum - 1) % 12;
+        }
+    }
+    return (0, updateCoordinates_1.computeProductCoordinates)(product.category || "", indexInCat);
+};
+exports.getBaselineCoordsForProduct = getBaselineCoordsForProduct;
+
+/**
  * Internal computation generator for 8 strategic store pairs
  * (3 Premier Hero Runway Mannequin Outfits + 5 In-Aisle Cupboard Bays)
  */
@@ -56,6 +77,19 @@ const generateRecommendationsCalculation = async (useAI = true) => {
 
     const final8FastMovers = [...heroRunwayFastMovers, ...cupboardFastMovers].slice(0, 8);
     const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(final8FastMovers, useAI);
+
+    // SANITIZE: Ensure every product embedded in the recommendations snapshot has pure baseline home coordinates
+    recommendations.forEach((rec) => {
+        if (rec.sourceProduct) {
+            rec.sourceProduct.coordinates3D = getBaselineCoordsForProduct(rec.sourceProduct);
+        }
+        if (Array.isArray(rec.similarProducts)) {
+            rec.similarProducts.forEach((p) => {
+                p.coordinates3D = getBaselineCoordsForProduct(p);
+            });
+        }
+    });
+
     return recommendations;
 };
 
@@ -273,30 +307,24 @@ exports.executeFloorSwap = (0, express_async_handler_1.default)(async (req, res)
             for (const prevRec of prevRecords) {
                 for (const oldIt of prevRec.executedItems) {
                     if (!incomingIds.has(String(oldIt.productId))) {
-                        const orig = oldIt.originalCoords;
-                        await Product_1.default.findByIdAndUpdate(oldIt.productId, {
-                            coordinates3D: {
-                                x: orig?.x,
-                                y: orig?.y,
-                                z: orig?.z,
-                                zone: orig?.zone || "Original Shelf Slot",
-                                isRelocated: false,
-                            },
-                        });
+                        const oldProd = await Product_1.default.findById(oldIt.productId);
+                        if (oldProd) {
+                            const baseline = getBaselineCoordsForProduct(oldProd);
+                            await Product_1.default.findByIdAndUpdate(oldProd._id, {
+                                $set: { coordinates3D: baseline },
+                            });
+                        }
                     }
                 }
                 for (const oldDisp of (prevRec.displacedItems || [])) {
                     if (!incomingIds.has(String(oldDisp.productId))) {
-                        const orig = oldDisp.originalCoords;
-                        await Product_1.default.findByIdAndUpdate(oldDisp.productId, {
-                            coordinates3D: {
-                                x: orig?.x,
-                                y: orig?.y,
-                                z: orig?.z,
-                                zone: orig?.zone || "Original Shelf Slot",
-                                isRelocated: false,
-                            },
-                        });
+                        const oldDProd = await Product_1.default.findById(oldDisp.productId);
+                        if (oldDProd) {
+                            const baseline = getBaselineCoordsForProduct(oldDProd);
+                            await Product_1.default.findByIdAndUpdate(oldDProd._id, {
+                                $set: { coordinates3D: baseline },
+                            });
+                        }
                     }
                 }
                 prevRec.status = "reverted";
@@ -369,40 +397,30 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
         // Revert specific single product
         const product = await Product_1.default.findById(productId);
         if (product) {
+            const baseline = getBaselineCoordsForProduct(product);
+            await Product_1.default.findByIdAndUpdate(productId, {
+                $set: { coordinates3D: baseline },
+            });
+            revertedProductIds.push(String(productId));
+
             const floorRecord = await FloorSwap_1.default.findOne({
                 status: "active",
                 "executedItems.productId": productId,
             });
-            const itemRecord = floorRecord?.executedItems.find((it) => String(it.productId) === String(productId));
-            const orig = itemRecord?.originalCoords;
-
-            await Product_1.default.findByIdAndUpdate(productId, {
-                coordinates3D: {
-                    x: orig?.x ?? product.coordinates3D?.x,
-                    y: orig?.y ?? product.coordinates3D?.y,
-                    z: orig?.z ?? product.coordinates3D?.z,
-                    zone: orig?.zone ?? "Shelf Slot",
-                    isRelocated: false,
-                },
-            });
-            revertedProductIds.push(String(productId));
 
             if (floorRecord) {
                 const itemIdx = floorRecord.executedItems.findIndex((it) => String(it.productId) === String(productId));
                 if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
                     const dispItem = floorRecord.displacedItems[itemIdx];
                     if (dispItem.productId) {
-                        const dOrig = dispItem.originalCoords;
-                        await Product_1.default.findByIdAndUpdate(dispItem.productId, {
-                            coordinates3D: {
-                                x: dOrig?.x,
-                                y: dOrig?.y,
-                                z: dOrig?.z,
-                                zone: dOrig?.zone || "Original Shelf Slot",
-                                isRelocated: false,
-                            },
-                        });
-                        revertedProductIds.push(String(dispItem.productId));
+                        const dProd = await Product_1.default.findById(dispItem.productId);
+                        if (dProd) {
+                            const dBaseline = getBaselineCoordsForProduct(dProd);
+                            await Product_1.default.findByIdAndUpdate(dispItem.productId, {
+                                $set: { coordinates3D: dBaseline },
+                            });
+                            revertedProductIds.push(String(dispItem.productId));
+                        }
                     }
                 }
                 floorRecord.executedItems = floorRecord.executedItems.filter((it) => String(it.productId) !== String(productId));
@@ -422,30 +440,24 @@ exports.revertFloorSwap = (0, express_async_handler_1.default)(async (req, res) 
         const records = await FloorSwap_1.default.find(query);
         for (const rec of records) {
             for (const it of rec.executedItems) {
-                const orig = it.originalCoords;
-                await Product_1.default.findByIdAndUpdate(it.productId, {
-                    coordinates3D: {
-                        x: orig?.x,
-                        y: orig?.y,
-                        z: orig?.z,
-                        zone: orig?.zone || "Original Shelf Slot",
-                        isRelocated: false,
-                    },
-                });
+                const prod = await Product_1.default.findById(it.productId);
+                if (prod) {
+                    const baseline = getBaselineCoordsForProduct(prod);
+                    await Product_1.default.findByIdAndUpdate(prod._id, {
+                        $set: { coordinates3D: baseline },
+                    });
+                }
                 revertedProductIds.push(String(it.productId));
             }
             for (const d of (rec.displacedItems || [])) {
                 if (d.productId) {
-                    const orig = d.originalCoords;
-                    await Product_1.default.findByIdAndUpdate(d.productId, {
-                        coordinates3D: {
-                            x: orig?.x,
-                            y: orig?.y,
-                            z: orig?.z,
-                            zone: orig?.zone || "Original Shelf Slot",
-                            isRelocated: false,
-                        },
-                    });
+                    const dProd = await Product_1.default.findById(d.productId);
+                    if (dProd) {
+                        const dBaseline = getBaselineCoordsForProduct(dProd);
+                        await Product_1.default.findByIdAndUpdate(dProd._id, {
+                            $set: { coordinates3D: dBaseline },
+                        });
+                    }
                     revertedProductIds.push(String(d.productId));
                 }
             }

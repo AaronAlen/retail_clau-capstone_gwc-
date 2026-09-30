@@ -8,7 +8,27 @@ import Product from "../models/Product";
 import FloorSwap from "../models/FloorSwap";
 import RecommendationSnapshot from "../models/RecommendationSnapshot";
 import { getIO } from "../sockets";
-import { resetAllProductsToBaselineCoords } from "../utils/updateCoordinates";
+import { computeProductCoordinates, resetAllProductsToBaselineCoords } from "../utils/updateCoordinates";
+
+/**
+ * Deterministically computes the canonical home shelf coordinates for any product.
+ * Guarantees that reverted or recommended products NEVER have undefined x, y, z or corrupted zones.
+ */
+export const getBaselineCoordsForProduct = (product: any) => {
+  if (!product) return null;
+  let indexInCat = 0;
+  const nameMatch = (product.name || "").match(/#(\d+)/);
+  if (nameMatch && nameMatch[1]) {
+    const id = parseInt(nameMatch[1], 10);
+    indexInCat = (id - 1) % 12;
+  } else {
+    const skuNum = parseInt((product.sku || "").replace(/\D/g, ""), 10);
+    if (!isNaN(skuNum)) {
+      indexInCat = skuNum >= 1001 ? (skuNum - 1001) % 12 : (skuNum - 1) % 12;
+    }
+  }
+  return computeProductCoordinates(product.category || "", indexInCat);
+};
 
 /**
  * Internal computation generator for 8 strategic store pairs
@@ -56,6 +76,19 @@ const generateRecommendationsCalculation = async (useAI = true) => {
   // Exactly 8 pairs: 3 Hero Runway + 5 Cupboard Bays
   const final8FastMovers = [...heroRunwayFastMovers, ...cupboardFastMovers].slice(0, 8);
   const recommendations = await buildRecommendationsForFastMovers(final8FastMovers, useAI);
+
+  // SANITIZE: Ensure every product embedded in the recommendations snapshot has pure baseline home coordinates
+  recommendations.forEach((rec: any) => {
+    if (rec.sourceProduct) {
+      rec.sourceProduct.coordinates3D = getBaselineCoordsForProduct(rec.sourceProduct);
+    }
+    if (Array.isArray(rec.similarProducts)) {
+      rec.similarProducts.forEach((p: any) => {
+        p.coordinates3D = getBaselineCoordsForProduct(p);
+      });
+    }
+  });
+
   return recommendations;
 };
 
@@ -339,30 +372,24 @@ export const executeFloorSwap = asyncHandler(async (req: AuthRequest, res: Respo
       for (const prevRec of prevRecords) {
         for (const oldIt of prevRec.executedItems) {
           if (!incomingIds.has(String(oldIt.productId))) {
-            const orig = oldIt.originalCoords;
-            await Product.findByIdAndUpdate(oldIt.productId, {
-              coordinates3D: {
-                x: orig?.x,
-                y: orig?.y,
-                z: orig?.z,
-                zone: orig?.zone || "Original Shelf Slot",
-                isRelocated: false,
-              },
-            });
+            const oldProd = await Product.findById(oldIt.productId);
+            if (oldProd) {
+              const baseline = getBaselineCoordsForProduct(oldProd);
+              await Product.findByIdAndUpdate(oldProd._id, {
+                $set: { coordinates3D: baseline },
+              });
+            }
           }
         }
         for (const oldDisp of (prevRec.displacedItems || [])) {
           if (!incomingIds.has(String(oldDisp.productId))) {
-            const orig = oldDisp.originalCoords;
-            await Product.findByIdAndUpdate(oldDisp.productId, {
-              coordinates3D: {
-                x: orig?.x,
-                y: orig?.y,
-                z: orig?.z,
-                zone: orig?.zone || "Original Shelf Slot",
-                isRelocated: false,
-              },
-            });
+            const oldDProd = await Product.findById(oldDisp.productId);
+            if (oldDProd) {
+              const baseline = getBaselineCoordsForProduct(oldDProd);
+              await Product.findByIdAndUpdate(oldDProd._id, {
+                $set: { coordinates3D: baseline },
+              });
+            }
           }
         }
         prevRec.status = "reverted";
@@ -431,40 +458,30 @@ export const revertFloorSwap = asyncHandler(async (req: AuthRequest, res: Respon
   if (productId) {
     const product = await Product.findById(productId);
     if (product) {
+      const baseline = getBaselineCoordsForProduct(product);
+      await Product.findByIdAndUpdate(productId, {
+        $set: { coordinates3D: baseline },
+      });
+      revertedProductIds.push(String(productId));
+
       const floorRecord = await FloorSwap.findOne({
         status: "active",
         "executedItems.productId": productId,
       });
-      const itemRecord = floorRecord?.executedItems.find((it: any) => String(it.productId) === String(productId));
-      const orig = itemRecord?.originalCoords;
-
-      await Product.findByIdAndUpdate(productId, {
-        coordinates3D: {
-          x: orig?.x ?? (product as any).coordinates3D?.x,
-          y: orig?.y ?? (product as any).coordinates3D?.y,
-          z: orig?.z ?? (product as any).coordinates3D?.z,
-          zone: orig?.zone ?? "Shelf Slot",
-          isRelocated: false,
-        },
-      });
-      revertedProductIds.push(String(productId));
 
       if (floorRecord) {
         const itemIdx = floorRecord.executedItems.findIndex((it: any) => String(it.productId) === String(productId));
         if (itemIdx !== -1 && floorRecord.displacedItems && floorRecord.displacedItems[itemIdx]) {
           const dispItem = floorRecord.displacedItems[itemIdx];
           if (dispItem.productId) {
-            const dOrig = dispItem.originalCoords;
-            await Product.findByIdAndUpdate(dispItem.productId, {
-              coordinates3D: {
-                x: dOrig?.x,
-                y: dOrig?.y,
-                z: dOrig?.z,
-                zone: dOrig?.zone || "Original Shelf Slot",
-                isRelocated: false,
-              },
-            });
-            revertedProductIds.push(String(dispItem.productId));
+            const dProd = await Product.findById(dispItem.productId);
+            if (dProd) {
+              const dBaseline = getBaselineCoordsForProduct(dProd);
+              await Product.findByIdAndUpdate(dispItem.productId, {
+                $set: { coordinates3D: dBaseline },
+              });
+              revertedProductIds.push(String(dispItem.productId));
+            }
           }
         }
         floorRecord.executedItems = floorRecord.executedItems.filter((it: any) => String(it.productId) !== String(productId));
@@ -483,30 +500,24 @@ export const revertFloorSwap = asyncHandler(async (req: AuthRequest, res: Respon
     const records = await FloorSwap.find(query);
     for (const rec of records) {
       for (const it of rec.executedItems) {
-        const orig = it.originalCoords;
-        await Product.findByIdAndUpdate(it.productId, {
-          coordinates3D: {
-            x: orig?.x,
-            y: orig?.y,
-            z: orig?.z,
-            zone: orig?.zone || "Original Shelf Slot",
-            isRelocated: false,
-          },
-        });
+        const prod = await Product.findById(it.productId);
+        if (prod) {
+          const baseline = getBaselineCoordsForProduct(prod);
+          await Product.findByIdAndUpdate(prod._id, {
+            $set: { coordinates3D: baseline },
+          });
+        }
         revertedProductIds.push(String(it.productId));
       }
       for (const d of (rec.displacedItems || [])) {
         if (d.productId) {
-          const orig = d.originalCoords;
-          await Product.findByIdAndUpdate(d.productId, {
-            coordinates3D: {
-              x: orig?.x,
-              y: orig?.y,
-              z: orig?.z,
-              zone: orig?.zone || "Original Shelf Slot",
-              isRelocated: false,
-            },
-          });
+          const dProd = await Product.findById(d.productId);
+          if (dProd) {
+            const dBaseline = getBaselineCoordsForProduct(dProd);
+            await Product.findByIdAndUpdate(dProd._id, {
+              $set: { coordinates3D: dBaseline },
+            });
+          }
           revertedProductIds.push(String(d.productId));
         }
       }

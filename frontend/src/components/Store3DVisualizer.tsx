@@ -1901,9 +1901,9 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       defaultPantsColor: number;
       defaultShoesColor: number;
       glowHalo: THREE.Mesh;
-      currentOutfit: { jacket: Product; tshirt: Product; pants: Product; shoes: Product } | null;
+      currentOutfit: { jacket?: Product | null; tshirt?: Product | null; pants?: Product | null; shoes?: Product | null } | null;
       currentProduct: Product | null;
-      updateOutfit: (outfit: { jacket: Product; tshirt: Product; pants: Product; shoes: Product } | null) => void;
+      updateOutfit: (outfit: { jacket?: Product | null; tshirt?: Product | null; pants?: Product | null; shoes?: Product | null } | null) => void;
     }
 
     const mannequins: MannequinTarget[] = [];
@@ -2226,24 +2226,49 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         cfg.z + runwayGroup.position.z
       );
 
-      let curOutfit: { jacket: Product; tshirt: Product; pants: Product; shoes: Product } | null = null;
-      const updateOutfit = (outfit: { jacket: Product; tshirt: Product; pants: Product; shoes: Product } | null) => {
+      let curOutfit: { jacket?: Product | null; tshirt?: Product | null; pants?: Product | null; shoes?: Product | null } | null = null;
+      const updateOutfit = (outfit: { jacket?: Product | null; tshirt?: Product | null; pants?: Product | null; shoes?: Product | null } | null) => {
         curOutfit = outfit;
         if (outfit) {
-          const jHex = getColorHexFromName(outfit.jacket.color, cfg.accentColor);
-          const tHex = getColorHexFromName(outfit.tshirt.color, 0xf1f5f9);
-          const pHex = getColorHexFromName(outfit.pants.color, 0x1e293b);
-          const sHex = getColorHexFromName(outfit.shoes.color, 0x0f172a);
+          if (outfit.jacket) {
+            jacketMat.color.setHex(getColorHexFromName(outfit.jacket.color, cfg.accentColor));
+          } else {
+            jacketMat.color.setHex(cfg.defaultColor);
+          }
 
-          jacketMat.color.setHex(jHex);
-          innerTopMat.color.setHex(tHex);
-          pantsMat.color.setHex(pHex);
-          shoesMat.color.setHex(sHex);
+          if (outfit.tshirt) {
+            innerTopMat.color.setHex(getColorHexFromName(outfit.tshirt.color, 0xf1f5f9));
+          } else {
+            innerTopMat.color.setHex(0xf1f5f9);
+          }
 
-          renderBadgeText(
-            cfg.label,
-            `${outfit.jacket.name.slice(0, 16)} + ${outfit.pants.name.slice(0, 14)}`
-          );
+          if (outfit.pants) {
+            pantsMat.color.setHex(getColorHexFromName(outfit.pants.color, 0x1e293b));
+          } else {
+            pantsMat.color.setHex(0x1e293b);
+          }
+
+          if (outfit.shoes) {
+            shoesMat.color.setHex(getColorHexFromName(outfit.shoes.color, 0x0f172a));
+          } else {
+            shoesMat.color.setHex(0x0f172a);
+          }
+
+          const activePieces = [
+            outfit.jacket?.name,
+            outfit.pants?.name,
+            outfit.tshirt?.name,
+            outfit.shoes?.name,
+          ].filter(Boolean);
+
+          if (activePieces.length > 0) {
+            renderBadgeText(
+              cfg.label,
+              activePieces.map((n) => n!.slice(0, 14)).join(" + ")
+            );
+          } else {
+            renderBadgeText(cfg.label, cfg.sublabel);
+          }
         } else {
           jacketMat.color.setHex(cfg.defaultColor);
           innerTopMat.color.setHex(0xf1f5f9);
@@ -2611,27 +2636,64 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           const pGroup = productGroupsMap.get(hero.outfit.pants._id);
           const sGroup = productGroupsMap.get(hero.outfit.shoes._id);
 
-          const hasFloorExecuted =
-            Boolean(executedFloorItemsRef.current[hero.outfit.jacket._id]) ||
-            Boolean(executedFloorItemsRef.current[hero.outfit.tshirt._id]) ||
-            Boolean(executedFloorItemsRef.current[hero.outfit.pants._id]) ||
-            Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id]);
+          const isFullStationApplied = Boolean(
+            planogramAppliedRef.current && hero.index === selectedSuggestionIdxRef.current
+          );
+          const isJacketActive = Boolean(executedFloorItemsRef.current[hero.outfit.jacket._id]) || isFullStationApplied;
+          const isTshirtActive = Boolean(executedFloorItemsRef.current[hero.outfit.tshirt._id]) || isFullStationApplied;
+          const isPantsActive = Boolean(executedFloorItemsRef.current[hero.outfit.pants._id]) || isFullStationApplied;
+          const isShoesActive = Boolean(executedFloorItemsRef.current[hero.outfit.shoes._id]) || isFullStationApplied;
 
-          const shouldDress = hasFloorExecuted || (planogramAppliedRef.current && hero.index === selectedSuggestionIdxRef.current);
-
-          if (shouldDress) {
-            if (jGroup) { jGroup.group.position.copy(m.worldChestPos); jGroup.group.visible = false; }
-            if (tGroup) { tGroup.group.position.copy(m.worldChestPos); tGroup.group.visible = false; }
-            if (pGroup) { pGroup.group.position.copy(m.worldPantsPos); pGroup.group.visible = false; }
-            if (sGroup) { sGroup.group.position.copy(m.worldShoesPos); sGroup.group.visible = false; }
-            m.updateOutfit(hero.outfit);
-          } else {
-            if (jGroup) { jGroup.group.position.copy(jGroup.originalPos); jGroup.group.visible = true; }
-            if (tGroup) { tGroup.group.position.copy(tGroup.originalPos); tGroup.group.visible = true; }
-            if (pGroup) { pGroup.group.position.copy(pGroup.originalPos); pGroup.group.visible = true; }
-            if (sGroup) { sGroup.group.position.copy(sGroup.originalPos); sGroup.group.visible = true; }
-            m.updateOutfit(null);
+          // 1. Outerwear Jacket
+          if (jGroup) {
+            if (isJacketActive) {
+              jGroup.group.position.copy(m.worldChestPos);
+              jGroup.group.visible = false;
+            } else {
+              jGroup.group.position.copy(jGroup.originalPos);
+              jGroup.group.visible = true;
+            }
           }
+
+          // 2. Topwear Shirt / T-Shirt
+          if (tGroup) {
+            if (isTshirtActive) {
+              tGroup.group.position.copy(m.worldChestPos);
+              tGroup.group.visible = false;
+            } else {
+              tGroup.group.position.copy(tGroup.originalPos);
+              tGroup.group.visible = true;
+            }
+          }
+
+          // 3. Bottomwear Pants / Denim
+          if (pGroup) {
+            if (isPantsActive) {
+              pGroup.group.position.copy(m.worldPantsPos);
+              pGroup.group.visible = false;
+            } else {
+              pGroup.group.position.copy(pGroup.originalPos);
+              pGroup.group.visible = true;
+            }
+          }
+
+          // 4. Footwear Shoes
+          if (sGroup) {
+            if (isShoesActive) {
+              sGroup.group.position.copy(m.worldShoesPos);
+              sGroup.group.visible = false;
+            } else {
+              sGroup.group.position.copy(sGroup.originalPos);
+              sGroup.group.visible = true;
+            }
+          }
+
+          m.updateOutfit({
+            jacket: isJacketActive ? hero.outfit.jacket : null,
+            tshirt: isTshirtActive ? hero.outfit.tshirt : null,
+            pants: isPantsActive ? hero.outfit.pants : null,
+            shoes: isShoesActive ? hero.outfit.shoes : null,
+          });
         });
       } else {
         // Reset all products to baseline shelf position first so other cupboards are undisturbed
@@ -2807,7 +2869,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             const m = mannequins[mIdx];
             if (m) {
               const heroStation = heroRunwayOutfits[mIdx];
-              const outfit = m.currentOutfit || heroStation?.outfit;
+              const outfit = heroStation?.outfit;
               if (outfit) {
                 setHoveredMannequin({
                   mannequinIndex: mIdx,
@@ -3239,14 +3301,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                 }
               });
 
-              // Only update this mannequin if its items were part of this flight or full planogram
-              if (affectedItemsCount > 0 || !specificIds) {
-                if (flightAnim.forward) {
-                  m.updateOutfit(hero.outfit);
-                } else {
-                  m.updateOutfit(null);
-                }
-              }
+              // Update positions and mannequin styling according to active executed items
+              syncPositionsAndOutfits();
             });
           } else {
             const specificIds = flightAnim.specificProductIds;
@@ -4163,10 +4219,10 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
     const activeTasks = swapMode === "hero_showcase" ? heroTasks : cupboardTasks;
     const unexecutedTasks = activeTasks.filter(
-      (t) => !executedFloorItems[t.item._id] && !t.item.coordinates3D?.isRelocated
+      (t) => !executedFloorItems[t.item._id]
     );
     const executedTasksInStation = activeTasks.filter(
-      (t) => Boolean(executedFloorItems[t.item._id] || t.item.coordinates3D?.isRelocated)
+      (t) => Boolean(executedFloorItems[t.item._id])
     );
     const isStationAllExecuted = activeTasks.length > 0 && unexecutedTasks.length === 0;
 
@@ -4356,9 +4412,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
 
             {activeTasks.map((task) => {
               const isChecked = Boolean(floorCheckedItems[task.item._id]);
-              const isExecuted = Boolean(
-                executedFloorItems[task.item._id] || task.item.coordinates3D?.isRelocated
-              );
+              const isExecuted = Boolean(executedFloorItems[task.item._id]);
 
               return (
                 <div
@@ -4521,8 +4575,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   const unexecutedChecked = activeTasks.filter(
                     (t) =>
                       floorCheckedItems[t.item._id] &&
-                      !executedFloorItems[t.item._id] &&
-                      !t.item.coordinates3D?.isRelocated
+                      !executedFloorItems[t.item._id]
                   );
                   handleExecuteFloorSwaps(
                     unexecutedChecked.length > 0 ? unexecutedChecked : unexecutedTasks
