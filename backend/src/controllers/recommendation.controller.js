@@ -29,37 +29,39 @@ exports.getRecommendations = (0, express_async_handler_1.default)(async (req, re
         };
 
         const storeDepartments = ["Jackets", "Shirts", "Jeans", "T-Shirts", "Shoes"];
-        const fastMovers = results.filter((r) => r.isFastMover);
-        const fastMoversByDept = new Map();
-        storeDepartments.forEach((d) => fastMoversByDept.set(d, []));
-        fastMovers.forEach((fm) => {
-            const norm = normalizeCategory(fm.product?.category);
-            if (fastMoversByDept.has(norm)) fastMoversByDept.get(norm).push(fm);
-        });
 
-        // Round 1: Top fast mover from each distinct department/cupboard
-        const balancedFastMovers = [];
+        // 🌟 Construct exactly 8 strategic store merchandising pairs:
+        // - Pairs 1 to 3 (Indices 0, 1, 2): 3 Premier Hero Runway Mannequin Outfits
+        // - Pairs 4 to 8 (Indices 3, 4, 5, 6, 7): 5 In-Aisle Cupboard Bays (Jackets, Shirts, Jeans, T-Shirts, Shoes)
+        const sortedOverall = [...results].sort((a, b) => b.velocityPerDay - a.velocityPerDay);
+
+        // 1. Pick Top 3 overall fast-movers for Hero Runway Stations 1, 2, 3
+        const heroRunwayFastMovers = [];
+        const allocatedIds = new Set();
+
+        for (const fm of sortedOverall) {
+            if (heroRunwayFastMovers.length >= 3) break;
+            heroRunwayFastMovers.push(fm);
+            allocatedIds.add(String(fm.product._id));
+        }
+
+        // 2. Pick 1 top fast-mover from each of the 5 distinct store departments for Cupboards 1 to 5
+        const cupboardFastMovers = [];
         storeDepartments.forEach((dept) => {
-            const items = fastMoversByDept.get(dept) || [];
-            if (items.length > 0) {
-                balancedFastMovers.push(items[0]);
-            } else {
-                const deptResults = results.filter((r) => normalizeCategory(r.product?.category) === dept);
-                deptResults.sort((a, b) => b.velocityPerDay - a.velocityPerDay);
-                if (deptResults[0]) balancedFastMovers.push(deptResults[0]);
+            const deptItems = results.filter((r) => normalizeCategory(r.product?.category) === dept);
+            deptItems.sort((a, b) => b.velocityPerDay - a.velocityPerDay);
+
+            const candidate = deptItems.find((it) => !allocatedIds.has(String(it.product._id))) || deptItems[0];
+            if (candidate) {
+                cupboardFastMovers.push(candidate);
+                allocatedIds.add(String(candidate.product._id));
             }
         });
 
-        // Round 2: Add any remaining fast movers up to 10
-        const addedIds = new Set(balancedFastMovers.map((b) => String(b.product._id)));
-        fastMovers.forEach((fm) => {
-            if (!addedIds.has(String(fm.product._id)) && balancedFastMovers.length < 10) {
-                balancedFastMovers.push(fm);
-                addedIds.add(String(fm.product._id));
-            }
-        });
+        // Exactly 8 pairs: 3 Hero Runway + 5 Cupboard Bays
+        const final8FastMovers = [...heroRunwayFastMovers, ...cupboardFastMovers].slice(0, 8);
 
-        const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(balancedFastMovers, useAI);
+        const recommendations = await (0, recommendation_service_1.buildRecommendationsForFastMovers)(final8FastMovers, useAI);
         res.json(recommendations);
     } catch (err) {
         console.error("Error generating recommendations, falling back:", err);

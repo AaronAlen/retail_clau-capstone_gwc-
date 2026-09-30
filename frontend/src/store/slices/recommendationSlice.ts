@@ -3,6 +3,14 @@ import api from "../../services/api";
 import { Product } from "./productSlice";
 
 export interface Recommendation {
+  id?: string;
+  pairIndex?: number;
+  pairNumber?: number;
+  pairType?: "hero_runway" | "cupboard_bay";
+  stationBadge?: string;
+  stationName?: string;
+  department?: string;
+  lift?: string;
   sourceProduct: Product;
   similarProducts: Product[];
   reason: string;

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, Suspense, lazy } from "react";
+import { useLocation } from "react-router-dom";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import api from "../services/api";
 import { useSocket } from "../hooks/useSocket";
@@ -79,6 +80,9 @@ const ShowroomSkeleton = () => (
 );
 
 const Dashboard: React.FC = () => {
+  const location = useLocation();
+  const incomingPairIndex = (location.state as any)?.selectedPairIndex;
+  const incomingSwapMode = (location.state as any)?.swapMode;
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -193,6 +197,8 @@ const Dashboard: React.FC = () => {
           <Store3DVisualizer
             fastMovers={summary.fastMovers}
             recommendations={recommendations}
+            selectedPairIndex={typeof incomingPairIndex === "number" ? incomingPairIndex : undefined}
+            initialSwapMode={incomingSwapMode}
           />
         </Suspense>
       </div>

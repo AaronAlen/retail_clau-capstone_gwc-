@@ -13,11 +13,16 @@ const explainRecommendation = async (source, similar, velocityPerDay) => {
         throw new Error("GROQ_API_KEY not configured");
     }
     const model = process.env.GROQ_MODEL || "qwen/qwen3.8-27b";
-    const prompt = `You are a retail merchandising analyst. A product called "${source.name}" (category: ${source.category}, color: ${source.color}) is selling at ${velocityPerDay.toFixed(2)} units/day, faster than similar items. Dedicated in-stock products to cross-merchandise nearby: ${similar
-        .map((p) => p.name)
-        .join(", ") || "none found"}. 
-PHYSICAL MERCHANDISING CONSTRAINT: In physical store merchandising, each product SKU has a single physical location and MUST NOT be cross-merchandised to multiple fast movers simultaneously to avoid physical swap conflicts and fixture collisions. 
-In 2-3 sentences, explain WHY placing these dedicated partner items adjacent to "${source.name}" lifts cross-department sales, in plain business language for a store manager.`;
+    const prompt = `You are an expert luxury retail visual merchandising analyst.
+A top fast-selling anchor product "${source.name}" (category: ${source.category}, color: ${source.color}) is selling at ${velocityPerDay.toFixed(2)} units/day.
+To maximize basket size and complete full-outfit cross-sell synergies across store departments, exactly 4 complementary in-stock products are paired:
+${similar.map((p, i) => `${i + 1}. ${p.name} (${p.category}, color: ${p.color})`).join("\n") || "none found"}.
+
+PHYSICAL MERCHANDISING ARCHITECTURE:
+- For Hero Runway Mannequins: These 4 products complete a coordinated 4-piece fashion ensemble (Outerwear, Topwear, Bottomwear, Footwear) on the central runway.
+- For In-Aisle Cupboard Bays: These 4 products form 1-to-1 bilateral mutual swaps with the other 4 showroom cupboards (Jackets, Shirts, Jeans, T-Shirts, Shoes), preventing duplicate fixture clutter.
+
+In 2 concise, impactful sentences, explain WHY co-locating these exact 4 complementary partner items with "${source.name}" drives immediate cross-department basket conversions for the store manager.`;
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         signal: AbortSignal.timeout(3500),

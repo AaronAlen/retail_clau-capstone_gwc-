@@ -68,6 +68,7 @@ export interface Store3DVisualizerProps {
   onSelectProduct?: (product: Product) => void;
   onRefreshData?: () => void;
   selectedPairIndex?: number;
+  initialSwapMode?: SwapMode;
   onPairChange?: (idx: number) => void;
 }
 
@@ -132,6 +133,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   onSelectProduct,
   onRefreshData,
   selectedPairIndex,
+  initialSwapMode,
   onPairChange,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -212,7 +214,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   const isMouseOverUIRef = useRef(false);
 
   const { showToast } = useToast();
-  const [swapMode, setSwapMode] = useState<SwapMode>("cupboard");
+  const [swapMode, setSwapMode] = useState<SwapMode>(initialSwapMode || "cupboard");
   const [planogramApplied, setPlanogramApplied] = useState(false);
   const planogramAppliedRef = useRef(false);
   useEffect(() => {
@@ -258,14 +260,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
   }, []);
 
 
-  // Sync external selectedPairIndex
+  // Sync external selectedPairIndex and initialSwapMode
   useEffect(() => {
     if (selectedPairIndex !== undefined && selectedPairIndex !== selectedSuggestionIdx) {
       hasUserSelectedRef.current = true;
       setSelectedSuggestionIdx(selectedPairIndex);
       setPlanogramApplied(false);
     }
-  }, [selectedPairIndex]);
+    if (initialSwapMode && initialSwapMode !== swapMode) {
+      setSwapMode(initialSwapMode);
+    }
+  }, [selectedPairIndex, initialSwapMode]);
 
   // Load products if missing
   useEffect(() => {

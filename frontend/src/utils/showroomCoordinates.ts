@@ -15,6 +15,8 @@ export interface PopularSpot {
   name: string;
   code: string;
   badge: string;
+  type: "hero_runway" | "cupboard_bay";
+  department: string;
   anchorCoords: Coordinate3D;
   swappedCoords: Coordinate3D;
   podiumCoords: { x: number; y: number; z: number };
@@ -22,14 +24,17 @@ export interface PopularSpot {
   neonColorHex: string;
 }
 
-// 🌟 3 HERO DISPLAY STATIONS (Directly mapped to 3 Runway Mannequins on the Center Deck)
+// 🌟 ALL 8 STORE MERCHANDISING STATIONS (3 Hero Runway + 5 In-Aisle Cupboard Bays)
 export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
+  // 🌟 1. HERO RUNWAY STATIONS (Indices 0, 1, 2)
   {
     id: "spot-1",
     index: 0,
-    name: "Hero Station 1: Cashmere Elegance Runway",
+    name: "Hero Station 1: West Runway Pedestal",
     code: "HERO 1",
     badge: "🌟 HERO 1",
+    type: "hero_runway",
+    department: "Outerwear & Casual Styling",
     anchorCoords: { x: -2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 1 (West Mannequin)" },
     swappedCoords: { x: -2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 1 (West Mannequin)" },
     podiumCoords: { x: -2.8, y: 0.18, z: 2.0 },
@@ -39,9 +44,11 @@ export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
   {
     id: "spot-2",
     index: 1,
-    name: "Hero Station 2: Prime Center VIP Runway",
+    name: "Hero Station 2: Prime Center VIP Apex Runway",
     code: "HERO 2",
     badge: "👑 HERO 2 (VIP)",
+    type: "hero_runway",
+    department: "VIP Luxury Formal Ensemble",
     anchorCoords: { x: 0.0, y: 1.9, z: 1.45, zone: "Hero Runway Station 2 (VIP Center Mannequin)" },
     swappedCoords: { x: 0.0, y: 1.9, z: 1.45, zone: "Hero Runway Station 2 (VIP Center Mannequin)" },
     podiumCoords: { x: 0.0, y: 0.28, z: 1.45 },
@@ -51,14 +58,87 @@ export const POPULAR_FEATURE_SPOTS: PopularSpot[] = [
   {
     id: "spot-3",
     index: 2,
-    name: "Hero Station 3: Streetwear Trend Runway",
+    name: "Hero Station 3: East Runway Trend Pedestal",
     code: "HERO 3",
     badge: "⚡ HERO 3",
+    type: "hero_runway",
+    department: "Streetwear Studio Trend",
     anchorCoords: { x: 2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 3 (East Mannequin)" },
     swappedCoords: { x: 2.8, y: 1.8, z: 2.0, zone: "Hero Runway Station 3 (East Mannequin)" },
     podiumCoords: { x: 2.8, y: 0.18, z: 2.0 },
     color: 0xa855f7, // Royal Purple
     neonColorHex: "#a855f7",
+  },
+  // 🏬 2. IN-AISLE CUPBOARD DEPARTMENT BAYS (Indices 3, 4, 5, 6, 7)
+  {
+    id: "spot-4",
+    index: 3,
+    name: "West Wing: Savile Row Outerwear Cupboard",
+    code: "CUPBOARD 1",
+    badge: "🧥 CUPBOARD 1",
+    type: "cupboard_bay",
+    department: "Jackets Department",
+    anchorCoords: { x: -12.5, y: 1.8, z: -3.8, zone: "West Wing: Executive Outerwear Cupboard" },
+    swappedCoords: { x: -12.5, y: 1.8, z: -3.8, zone: "West Wing: Executive Outerwear Cupboard" },
+    podiumCoords: { x: -12.5, y: 0.05, z: -3.8 },
+    color: 0xc084fc, // Purple Accent
+    neonColorHex: "#c084fc",
+  },
+  {
+    id: "spot-5",
+    index: 4,
+    name: "North-West Wing: Royal Oxford Wardrobe Cupboard",
+    code: "CUPBOARD 2",
+    badge: "👔 CUPBOARD 2",
+    type: "cupboard_bay",
+    department: "Shirts Department",
+    anchorCoords: { x: -12.5, y: 1.8, z: 6.2, zone: "North-West Wing: Royal Oxford Wardrobe Cupboard" },
+    swappedCoords: { x: -12.5, y: 1.8, z: 6.2, zone: "North-West Wing: Royal Oxford Wardrobe Cupboard" },
+    podiumCoords: { x: -12.5, y: 0.05, z: 6.2 },
+    color: 0x38bdf8, // Sky Blue
+    neonColorHex: "#38bdf8",
+  },
+  {
+    id: "spot-6",
+    index: 5,
+    name: "North Wing: Premium Denim Studio Cupboard",
+    code: "CUPBOARD 3",
+    badge: "👖 CUPBOARD 3",
+    type: "cupboard_bay",
+    department: "Jeans Department",
+    anchorCoords: { x: 0.0, y: 1.8, z: 9.8, zone: "North Wing: Premium Denim Studio Cupboard" },
+    swappedCoords: { x: 0.0, y: 1.8, z: 9.8, zone: "North Wing: Premium Denim Studio Cupboard" },
+    podiumCoords: { x: 0.0, y: 0.05, z: 9.8 },
+    color: 0x10b981, // Emerald Green
+    neonColorHex: "#10b981",
+  },
+  {
+    id: "spot-7",
+    index: 6,
+    name: "North-East Wing: Streetwear Studio Cupboard",
+    code: "CUPBOARD 4",
+    badge: "👕 CUPBOARD 4",
+    type: "cupboard_bay",
+    department: "T-Shirts Department",
+    anchorCoords: { x: 12.5, y: 1.8, z: 6.2, zone: "North-East Wing: Streetwear Studio Cupboard" },
+    swappedCoords: { x: 12.5, y: 1.8, z: 6.2, zone: "North-East Wing: Streetwear Studio Cupboard" },
+    podiumCoords: { x: 12.5, y: 0.05, z: 6.2 },
+    color: 0xfbbf24, // Amber
+    neonColorHex: "#fbbf24",
+  },
+  {
+    id: "spot-8",
+    index: 7,
+    name: "East Wing: Luxury Footwear Lounge Cupboard",
+    code: "CUPBOARD 5",
+    badge: "👞 CUPBOARD 5",
+    type: "cupboard_bay",
+    department: "Shoes Department",
+    anchorCoords: { x: 12.5, y: 1.8, z: -3.8, zone: "East Wing: Luxury Footwear Lounge Cupboard" },
+    swappedCoords: { x: 12.5, y: 1.8, z: -3.8, zone: "East Wing: Luxury Footwear Lounge Cupboard" },
+    podiumCoords: { x: 12.5, y: 0.05, z: -3.8 },
+    color: 0xf43f5e, // Rose
+    neonColorHex: "#f43f5e",
   },
 ];
 
