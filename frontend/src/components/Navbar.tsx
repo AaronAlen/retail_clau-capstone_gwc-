@@ -104,16 +104,14 @@ const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-        {/* 📱 PWA Install App Button */}
+        {/* 📱 PWA Install App Button (Icon Only) */}
         {!isInstalled && (
           <button
             onClick={handleInstallClick}
-            className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold text-stone-800 bg-white hover:bg-[#F2E8D5] border border-[#E5D7BE] transition-all shadow-sm hover:scale-[1.02] cursor-pointer shrink-0"
-            title="Install Velocity Retail App on your mobile device or computer (PWA)"
+            className="p-1.5 sm:p-2 rounded-xl border border-[#E5D7BE] bg-white text-stone-700 hover:bg-[#F2E8D5] transition-all shadow-sm hover:scale-[1.02] cursor-pointer shrink-0"
+            title="Install Velocity Retail App (PWA)"
           >
-            <Download className="w-3.5 h-3.5 text-orange-600" />
-            <span className="hidden sm:inline">Install App</span>
-            <span className="sm:hidden text-[11px]">Install</span>
+            <Download className="w-4 h-4 text-orange-600" />
           </button>
         )}
 

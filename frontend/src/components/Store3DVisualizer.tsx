@@ -4984,6 +4984,29 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           <span>⚡ Tasks</span>
         </button>
 
+        {/* 📱 Mobile Landscape 3D View / Rotate Button */}
+        <button
+          onClick={handleToggleMobileLandscape}
+          className={`py-1.5 px-2 rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-all border shrink-0 ${
+            isMobileLandscape || isForcedRotate90
+              ? "bg-rose-600/90 hover:bg-rose-500 text-white border-rose-400 shadow-md shadow-rose-500/30 font-bold"
+              : "border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/25"
+          }`}
+          title={isMobileLandscape || isForcedRotate90 ? "Exit Landscape View" : "Rotate to Landscape 3D View"}
+        >
+          {isMobileLandscape || isForcedRotate90 ? (
+            <>
+              <X className="w-3 h-3 text-white" />
+              <span>Exit</span>
+            </>
+          ) : (
+            <>
+              <Smartphone className="w-3 h-3 text-amber-400 rotate-90" />
+              <span>3D Land</span>
+            </>
+          )}
+        </button>
+
         {/* Fullscreen Button for Mobile */}
         <button
           onClick={toggleFullScreen}
