@@ -168,7 +168,7 @@ jobs:
           AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
 
       - name: 🔄 Update AWS ECS Service with Latest Image
-        if: env.AWS_KEY != '' && env.ECS_CLUSTER != ''
+        if: env.AWS_KEY != ''
         run: |
           echo "Forcing new deployment on AWS ECS cluster..."
           aws ecs update-service \
@@ -178,4 +178,3 @@ jobs:
           echo "AWS ECS deployment triggered successfully!"
         env:
           AWS_KEY: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          ECS_CLUSTER: ${{ secrets.ECS_CLUSTER }}
