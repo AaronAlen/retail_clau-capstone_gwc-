@@ -2605,7 +2605,6 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                 if (targetProd && hoveredProductIdRef.current !== targetProd._id) {
                   hoveredProductIdRef.current = targetProd._id;
                   setHoveredProduct(targetProd);
-                  setInspectedProduct(targetProd);
                 }
               }
             }
@@ -2628,16 +2627,16 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               lastHoveredMesh = pMesh;
             }
 
-            // Update React state for Side Overlay only when hovered product actually changes!
+            // Update React state for Side Overlay ONLY on hover!
             if (hoveredProductIdRef.current !== prod._id) {
               hoveredProductIdRef.current = prod._id;
               setHoveredProduct(prod);
-              setInspectedProduct(prod);
             }
             return;
           }
         } else {
           setHoveredMannequin(null);
+          setHoveredProduct(null);
           if (lastHoveredMesh) {
             lastHoveredMesh.scale.set(1, 1, 1);
             lastHoveredMesh = null;
@@ -2692,6 +2691,11 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               onSelectProduct?.(targetProd);
               onPairChange?.(mIdx);
               focusCameraOnPosRef.current?.(focusPos);
+              if (scopePointerGroupRef.current) {
+                scopePointerGroupRef.current.position.copy(focusPos);
+                scopePointerGroupRef.current.visible = true;
+              }
+              setSearchedProduct(targetProd);
               if (typeof window !== "undefined" && window.innerWidth < 1024) {
                 setMobileDrawer("inspect");
               }
@@ -2703,6 +2707,19 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           const prod = hit.userData.product as Product;
           setInspectedProduct(prod);
           onSelectProduct?.(prod);
+
+          // Fly camera to zoom into product shelf
+          const pGroup = productGroupsMapRef.current.get(prod._id);
+          const targetPos = pGroup ? pGroup.group.position : hit.position;
+          focusCameraOnPosRef.current?.(targetPos);
+
+          // Trigger 3D Tactical Scope Reticle & Holographic Scan animation ("Accuracy Animation")
+          if (scopePointerGroupRef.current) {
+            scopePointerGroupRef.current.position.copy(targetPos);
+            scopePointerGroupRef.current.visible = true;
+          }
+          setSearchedProduct(prod);
+
           if (typeof window !== "undefined" && window.innerWidth < 1024) {
             setMobileDrawer("inspect");
           }
@@ -2771,6 +2788,7 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     domElement.addEventListener("touchstart", onTouchStart, { passive: false });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd, { passive: true });
+    window.addEventListener("touchcancel", () => { isDragging = false; initialPinchDist = 0; }, { passive: true });
 
     // --- ANIMATION LOOP (SYNCHRONIZED WITH HARDWARE V-SYNC FOR BUTTERY-SMOOTH MOBILE FPS) ---
     let reqId: number;
@@ -2789,17 +2807,17 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       reqId = requestAnimationFrame(animate);
       if (!isRenderingActive) return;
 
-      const elapsed = clock.getElapsedTime();
       const delta = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.getElapsedTime();
 
       // Camera lerp
       currentLookAt.lerp(targetLookAt, 0.08);
       currentRadius += (targetRadius - currentRadius) * 0.12;
       currentPhi += (targetPhi - currentPhi) * 0.12;
 
-      // Auto rotation (Smooth, slow luxury showroom orbit at ~20°/sec)
+      // Auto rotation (Gentle, ultra-slow luxury showroom orbit at ~4°/sec)
       if (autoRotateRef.current && !isDragging) {
-        const orbitSpeed = delta * 0.35;
+        const orbitSpeed = Math.max(delta, 0.016) * 0.08;
         targetTheta += orbitSpeed;
         currentTheta += orbitSpeed;
       } else {
@@ -3100,8 +3118,8 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
     swapMode,
   ]);
 
-  // Fallback product display if none hovered yet
-  const activeDisplayProduct = inspectedProduct || hoveredProduct || fastMoverProduct;
+  // Active product display: ONLY when user hovered a product, clicked/inspected a product, or searched a product
+  const activeDisplayProduct = hoveredProduct || inspectedProduct || searchedProduct || null;
   const activeProductCoords = React.useMemo(() => {
     if (!activeDisplayProduct) {
       return getProductShelfLocation(undefined);
@@ -3415,13 +3433,24 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   {hoveredMannequin.badge} Mannequin
                 </h4>
               </div>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 shrink-0">
-                {hoveredMannequin.part === "upper"
-                  ? "Upper Ensemble (2)"
-                  : hoveredMannequin.part === "pants"
-                  ? "Lower Body"
-                  : "Footwear"}
-              </span>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30 shrink-0">
+                  {hoveredMannequin.part === "upper"
+                    ? "Upper Ensemble (2)"
+                    : hoveredMannequin.part === "pants"
+                    ? "Lower Body"
+                    : "Footwear"}
+                </span>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer"
+                    title="Close Inspector"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 min-h-0 custom-scrollbar my-2">
@@ -3633,7 +3662,28 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
             </div>
 
             {/* Quick Action Button - Pinned */}
-            <div className="shrink-0 pt-2 border-t border-amber-500/20 mt-auto">
+            <div className="shrink-0 pt-2 border-t border-amber-500/20 mt-auto space-y-1.5">
+              <button
+                onClick={() => {
+                  const heroStation = heroRunwayPairs[hoveredMannequin.mannequinIndex];
+                  const focusPos = heroStation?.worldTargetPos || new THREE.Vector3(0, 1.8, 1.8);
+                  focusCameraOnPosRef.current?.(focusPos);
+                  if (scopePointerGroupRef.current) {
+                    scopePointerGroupRef.current.position.copy(focusPos);
+                    scopePointerGroupRef.current.visible = true;
+                  }
+                  if (onClose && typeof window !== "undefined" && window.innerWidth < 1024) {
+                    onClose();
+                  }
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 hover:border-amber-400 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+                title="Zoom Camera to Mannequin & Lock Tactical Target Reticle"
+              >
+                <Crosshair className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>Zoom & Target in 3D</span>
+                <ZoomIn className="w-3.5 h-3.5 text-amber-400" />
+              </button>
+
               <button
                 onClick={() => {
                   const prodToRestock =
@@ -3664,9 +3714,20 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
                   3D Product Inspector
                 </h4>
               </div>
-              <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
-                {activeDisplayProduct.category}
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+                  {activeDisplayProduct.category}
+                </span>
+                {onClose && (
+                  <button
+                    onClick={onClose}
+                    className="p-1 rounded-lg text-stone-400 hover:text-white bg-stone-900 border border-stone-800 cursor-pointer"
+                    title="Close Inspector"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Scrollable details */}
@@ -3752,8 +3813,33 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
               </div>
             </div>
 
-            {/* Quick Action Button - Pinned */}
-            <div className="shrink-0 pt-2 border-t border-amber-500/20 mt-auto">
+            {/* Quick Action Buttons - Pinned */}
+            <div className="shrink-0 pt-2 border-t border-amber-500/20 mt-auto space-y-1.5">
+              {/* 🎯 3D Tactical Zoom & Accuracy Targeting Button */}
+              <button
+                onClick={() => {
+                  const pGroup = productGroupsMapRef.current.get(activeDisplayProduct._id);
+                  const targetPos = pGroup
+                    ? pGroup.group.position
+                    : new THREE.Vector3(activeProductCoords.x, activeProductCoords.y, activeProductCoords.z);
+                  focusCameraOnPosRef.current?.(targetPos);
+                  if (scopePointerGroupRef.current) {
+                    scopePointerGroupRef.current.position.copy(targetPos);
+                    scopePointerGroupRef.current.visible = true;
+                  }
+                  setSearchedProduct(activeDisplayProduct);
+                  if (onClose && typeof window !== "undefined" && window.innerWidth < 1024) {
+                    onClose();
+                  }
+                }}
+                className="w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/50 hover:border-amber-400 text-xs font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-sm group"
+                title="Zoom Camera to 3D Shelf & Lock Tactical Target Reticle"
+              >
+                <Crosshair className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
+                <span>Zoom & Target in 3D</span>
+                <ZoomIn className="w-3.5 h-3.5 text-amber-400" />
+              </button>
+
               <button
                 onClick={() => handleQuickRestock(activeDisplayProduct._id, activeDisplayProduct.stock)}
                 disabled={actionLoading}
@@ -4871,7 +4957,14 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
           }}
           className="absolute top-16 left-4 bottom-14 z-10 w-84 max-w-[350px] pointer-events-auto hidden lg:flex flex-col animate-in fade-in slide-in-from-left duration-200"
         >
-          {renderInspectorCard()}
+          {renderInspectorCard(() => {
+            setInspectedProduct(null);
+            setHoveredProduct(null);
+            setHoveredMannequin(null);
+            if (scopePointerGroupRef.current) {
+              scopePointerGroupRef.current.visible = false;
+            }
+          })}
         </div>
       )}
 
@@ -4891,38 +4984,38 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
       )}
 
       {/* 📱 MOBILE OVERLAYS & SLIDE-UP DRAWERS (STAFF TABLET & MOBILE FRIENDLY) */}
-      {/* Mobile Drawer Backdrop (Light blur so 3D background is visible) */}
+      {/* Mobile Drawer Backdrop (Transparent click-catcher to dismiss with ZERO blur on 3D viewport) */}
       {mobileDrawer !== "none" && (
         <div
           onClick={() => setMobileDrawer("none")}
-          className="lg:hidden absolute inset-0 z-40 bg-black/35 backdrop-blur-[2px] pointer-events-auto animate-in fade-in duration-200"
+          className="lg:hidden fixed inset-0 z-40 pointer-events-auto"
         />
       )}
 
-      {/* Mobile Product Search Drawer (Real-Time Search & 3D Scope Pointer) */}
+      {/* Mobile Product Search Drawer (Real-Time Search & 3D Scope Pointer - 97vh) */}
       {mobileDrawer === "search" && (
-        <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
+        <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
           {renderMobileSearchDrawer(() => setMobileDrawer("none"))}
         </div>
       )}
 
-      {/* Mobile Inspector Drawer (Right-docked, 3D showroom visible on left, full height) */}
+      {/* Mobile Inspector Drawer (Right-docked, 3D showroom visible on left - 97vh) */}
       {mobileDrawer === "inspect" && (
-        <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
+        <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
           {renderInspectorCard(() => setMobileDrawer("none"))}
         </div>
       )}
 
-      {/* Mobile Planogram Strategy Drawer (Right-docked, 3D showroom visible on left, full height) */}
+      {/* Mobile Planogram Strategy Drawer (Right-docked, 3D showroom visible on left - 97vh) */}
       {mobileDrawer === "strategy" && (
-        <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
+        <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
           {renderStrategyCard(() => setMobileDrawer("none"))}
         </div>
       )}
 
-      {/* Mobile Floor Staff Real-World Swap Tasks Drawer (Right-docked, 3D showroom visible on left, full height) */}
+      {/* Mobile Floor Staff Real-World Swap Tasks Drawer (Right-docked, 3D showroom visible on left - 97vh) */}
       {mobileDrawer === "tasks" && (
-        <div className="lg:hidden absolute right-2 sm:right-3 top-14 bottom-16 z-50 w-[88vw] max-w-[340px] sm:max-w-[360px] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
+        <div className="lg:hidden fixed right-2 sm:right-3 top-2 bottom-2 z-50 w-[92vw] max-w-[360px] h-[97vh] max-h-[97vh] flex flex-col pointer-events-auto shadow-2xl animate-in slide-in-from-right duration-250">
           {renderFloorTasksCard(() => setMobileDrawer("none"))}
         </div>
       )}
@@ -4955,6 +5048,22 @@ export const Store3DVisualizer: React.FC<Store3DVisualizerProps> = ({
         >
           <ClipboardCheck className="w-3 h-3 text-amber-400" />
           <span>⚡ Tasks</span>
+        </button>
+
+        {/* 📱 Mobile Recenter / Reset Camera View Button */}
+        <button
+          onClick={() => {
+            zoomControlRef.current.resetView();
+            setSearchedProduct(null);
+            setInspectedProduct(null);
+            setHoveredProduct(null);
+            setHoveredMannequin(null);
+          }}
+          className="py-1.5 px-2 rounded-xl text-[10px] font-black flex items-center justify-center gap-1 transition-all border border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/25 shrink-0"
+          title="Recenter Camera to Center Stage"
+        >
+          <RotateCcw className="w-3 h-3 text-amber-400" />
+          <span>Recenter</span>
         </button>
 
         {/* 📱 Mobile Landscape 3D View / Rotate Button */}
