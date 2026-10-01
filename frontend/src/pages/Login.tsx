@@ -49,33 +49,35 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-stone-900 via-stone-950 to-black flex items-center justify-center px-4 py-8 relative overflow-hidden">
-      {/* Background Ambient Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-72 h-72 bg-sky-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen bg-[#F8F3EA] flex items-center justify-center px-4 py-10 relative overflow-hidden">
+      {/* Warm Ambient Subtle Halos (Matching App Linen Theme) */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-10 right-10 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-10 left-10 w-80 h-80 bg-orange-400/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="w-full max-w-md bg-stone-900/90 backdrop-blur-xl border border-stone-800 rounded-3xl p-7 shadow-2xl space-y-6 relative z-10">
+      {/* Luxury Boutique White Card */}
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-xl border border-[#E5D7BE] rounded-3xl p-8 shadow-xl shadow-stone-900/5 space-y-6 relative z-10">
         {/* Brand Header */}
         <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-600 text-stone-950 shadow-lg shadow-orange-500/20 mb-1">
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-br from-orange-500 via-amber-500 to-orange-600 text-white shadow-lg shadow-orange-500/25 mb-1">
             <Sparkles className="w-6 h-6" />
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-white">Velocity Retail</h1>
-          <p className="text-xs text-stone-400">Autonomous AI Showroom & Merchandising Engine</p>
+          <h1 className="text-2xl font-black tracking-tight text-stone-900">Velocity Retail</h1>
+          <p className="text-xs text-stone-500 font-medium">Autonomous AI Showroom & Merchandising Engine</p>
         </div>
 
         {/* Tab Toggle: Sign In vs Create Account */}
-        <div className="grid grid-cols-2 bg-stone-950 p-1.5 rounded-2xl border border-stone-800">
+        <div className="grid grid-cols-2 bg-[#F8F2E6] p-1.5 rounded-2xl border border-[#E5D7BE]">
           <button
             type="button"
             onClick={() => {
               setIsRegister(false);
               setError("");
             }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
               !isRegister
-                ? "bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20"
-                : "text-stone-400 hover:text-white"
+                ? "bg-white text-orange-700 shadow-sm border border-[#E5D7BE]/70 font-black"
+                : "text-stone-600 hover:text-stone-900"
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -87,10 +89,10 @@ const Login = () => {
               setIsRegister(true);
               setError("");
             }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
+            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
               isRegister
-                ? "bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20"
-                : "text-stone-400 hover:text-white"
+                ? "bg-white text-orange-700 shadow-sm border border-[#E5D7BE]/70 font-black"
+                : "text-stone-600 hover:text-stone-900"
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -100,7 +102,7 @@ const Login = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className="text-xs font-semibold text-rose-300 bg-rose-950/60 border border-rose-800/80 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
+          <div className="text-xs font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-xl px-3.5 py-2.5 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0" />
             <span>{error}</span>
           </div>
@@ -110,9 +112,9 @@ const Login = () => {
         <form onSubmit={handleSubmit} className="space-y-4">
           {isRegister && (
             <div>
-              <label className="text-xs font-bold text-stone-300">Full Name</label>
+              <label className="text-xs font-bold text-stone-700">Full Name</label>
               <input
-                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-stone-950/80 border border-stone-800 text-white placeholder-stone-600 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. John Doe"
@@ -123,9 +125,9 @@ const Login = () => {
           )}
 
           <div>
-            <label className="text-xs font-bold text-stone-300">Work Email</label>
+            <label className="text-xs font-bold text-stone-700">Work Email</label>
             <input
-              className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-stone-950/80 border border-stone-800 text-white placeholder-stone-600 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+              className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. employee@velocity.com"
@@ -135,9 +137,9 @@ const Login = () => {
           </div>
 
           <div>
-            <label className="text-xs font-bold text-stone-300">Password</label>
+            <label className="text-xs font-bold text-stone-700">Password</label>
             <input
-              className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-stone-950/80 border border-stone-800 text-white placeholder-stone-600 text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+              className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter your password"
@@ -148,11 +150,11 @@ const Login = () => {
 
           {isRegister && (
             <div>
-              <label className="text-xs font-bold text-stone-300">Assigned Store Role</label>
+              <label className="text-xs font-bold text-stone-700">Assigned Store Role</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value as any)}
-                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-stone-950/80 border border-stone-800 text-white text-sm focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all cursor-pointer"
+                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all cursor-pointer font-bold"
               >
                 <option value="staff">Staff Cashier (POS & Sales Access)</option>
                 <option value="manager">Floor Manager (Inventory & Merchandising)</option>
@@ -163,7 +165,7 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-stone-950 font-black text-sm tracking-wide shadow-lg shadow-orange-500/25 transition-all active:scale-[0.99] disabled:opacity-50"
+            className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             disabled={loading}
           >
             {loading ? "Processing..." : isRegister ? "Create Account & Sign In" : "Sign In to Dashboard"}
@@ -171,36 +173,36 @@ const Login = () => {
         </form>
 
         {/* Security Badge */}
-        <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-1 border-t border-stone-800/80">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+        <div className="flex items-center justify-center gap-1.5 text-[11px] text-stone-500 pt-2 border-t border-[#E5D7BE]">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Protected by HttpOnly Secure JWT Session Cookies</span>
         </div>
 
-        {/* Optional Quick Demo Autofill Pills (Only fills on click, never default!) */}
-        <div className="space-y-2 pt-2">
-          <div className="flex items-center gap-2 justify-center text-[10px] uppercase font-bold tracking-wider text-stone-500">
-            <KeyRound className="w-3 h-3 text-amber-500" />
+        {/* Quick Demo Autofill Pills (Clean warm linen cards) */}
+        <div className="space-y-2 pt-1">
+          <div className="flex items-center gap-1.5 justify-center text-[10px] uppercase font-bold tracking-wider text-stone-500">
+            <KeyRound className="w-3 h-3 text-orange-600" />
             <span>Quick Demo Role Autofill</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
               onClick={() => handleDemoFill("admin@velocity.com", "admin123")}
-              className="px-2.5 py-1.5 rounded-lg bg-stone-950 hover:bg-stone-800 border border-stone-800 text-[11px] font-bold text-stone-300 hover:text-white transition-colors text-center"
+              className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               👑 Admin
             </button>
             <button
               type="button"
               onClick={() => handleDemoFill("manager@velocity.com", "manager123")}
-              className="px-2.5 py-1.5 rounded-lg bg-stone-950 hover:bg-stone-800 border border-stone-800 text-[11px] font-bold text-stone-300 hover:text-white transition-colors text-center"
+              className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               👔 Manager
             </button>
             <button
               type="button"
               onClick={() => handleDemoFill("staff@velocity.com", "staff123")}
-              className="px-2.5 py-1.5 rounded-lg bg-stone-950 hover:bg-stone-800 border border-stone-800 text-[11px] font-bold text-stone-300 hover:text-white transition-colors text-center"
+              className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               🛒 Cashier
             </button>
