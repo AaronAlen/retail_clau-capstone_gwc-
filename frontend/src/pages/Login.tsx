@@ -129,21 +129,21 @@ const Login = () => {
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
-              onClick={() => handleDemoFill("admin@velocity.com", "admin123")}
+              onClick={() => handleDemoFill("admin@velocity.com", "Velocity@Admin2026!")}
               className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               👑 Admin
             </button>
             <button
               type="button"
-              onClick={() => handleDemoFill("manager@velocity.com", "manager123")}
+              onClick={() => handleDemoFill("manager@velocity.com", "Velocity@Mgr2026!")}
               className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               👔 Manager
             </button>
             <button
               type="button"
-              onClick={() => handleDemoFill("staff@velocity.com", "staff123")}
+              onClick={() => handleDemoFill("staff@velocity.com", "Velocity@Staff2026!")}
               className="px-2.5 py-2 rounded-xl bg-[#FAF5EE] hover:bg-orange-50 border border-[#E5D7BE] hover:border-orange-400 text-[11px] font-bold text-stone-800 transition-colors text-center cursor-pointer shadow-2xs"
             >
               🛒 Cashier

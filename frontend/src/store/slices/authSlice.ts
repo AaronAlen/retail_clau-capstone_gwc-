@@ -31,11 +31,18 @@ const authSlice = createSlice({
     setCredentials: (state, action: PayloadAction<{ user: AuthUser; accessToken?: string; refreshToken?: string }>) => {
       state.user = action.payload.user;
       localStorage.setItem("velocity_user", JSON.stringify(action.payload.user));
-      // NOTE: JWT access & refresh tokens are stored exclusively in HttpOnly secure cookies for OWASP security
+      if (action.payload.accessToken) {
+        localStorage.setItem("velocity_token", action.payload.accessToken);
+      }
+      if (action.payload.refreshToken) {
+        localStorage.setItem("velocity_refresh_token", action.payload.refreshToken);
+      }
     },
     logout: (state) => {
       state.user = null;
       localStorage.removeItem("velocity_user");
+      localStorage.removeItem("velocity_token");
+      localStorage.removeItem("velocity_refresh_token");
     },
   },
 });

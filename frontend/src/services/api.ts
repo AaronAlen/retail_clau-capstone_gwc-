@@ -15,6 +15,15 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Attach Bearer token from localStorage for mobile browsers where third-party/cross-origin cookies are restricted
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("velocity_token");
+  if (token && !config.headers.Authorization) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
 let isRefreshing = false;
 
 api.interceptors.response.use(
@@ -31,8 +40,16 @@ api.interceptors.response.use(
       original._retry = true;
       isRefreshing = true;
       try {
-        // Calls /auth/refresh with HttpOnly cookie automatically attached
-        await axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true });
+        const storedRefreshToken = localStorage.getItem("velocity_refresh_token");
+        // Calls /auth/refresh with HttpOnly cookie automatically attached, plus body fallback
+        const { data } = await axios.post(
+          `${API_BASE_URL}/auth/refresh`,
+          { refreshToken: storedRefreshToken },
+          { withCredentials: true }
+        );
+        if (data?.accessToken) {
+          localStorage.setItem("velocity_token", data.accessToken);
+        }
         isRefreshing = false;
         return api(original);
       } catch {

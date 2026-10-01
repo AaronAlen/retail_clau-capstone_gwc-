@@ -92,9 +92,9 @@ const run = async () => {
   ]);
 
   await User.create([
-    { name: "Admin", email: "admin@velocity.com", password: "admin123", role: "admin" },
-    { name: "Manager", email: "manager@velocity.com", password: "manager123", role: "manager" },
-    { name: "Staff", email: "staff@velocity.com", password: "staff123", role: "staff" },
+    { name: "Admin", email: "admin@velocity.com", password: "Velocity@Admin2026!", role: "admin" },
+    { name: "Manager", email: "manager@velocity.com", password: "Velocity@Mgr2026!", role: "manager" },
+    { name: "Staff", email: "staff@velocity.com", password: "Velocity@Staff2026!", role: "staff" },
   ]);
 
   const products = [];
