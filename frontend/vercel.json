@@ -5,7 +5,11 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://velocity-retail-backend-latest.onrender.com/api/:path*"
+      "destination": "https://d2r14mddgufil7.cloudfront.net/api/:path*"
+    },
+    {
+      "source": "/socket.io/:path*",
+      "destination": "https://d2r14mddgufil7.cloudfront.net/socket.io/:path*"
     },
     {
       "source": "/(.*)",
