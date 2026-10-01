@@ -159,70 +159,125 @@ The recommendation pipeline executes mathematical market basket associations pai
 
 ## 5. Database Schema (MongoDB Mongoose)
 
-### 1. `User` Schema
+### 1. `User` Schema (`User.js`)
+* **Purpose:** Authentication, password hashing via bcrypt, and Role-Based Access Control (RBAC).
 ```typescript
 {
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true }, // Bcrypt hash
+  name: { type: String, required: true, trim: true },
+  email: { type: String, required: true, unique: true, lowercase: true },
+  password: { type: String, required: true, minlength: 6, select: false },
   role: { type: String, enum: ['admin', 'manager', 'staff'], default: 'staff' },
   timestamps: true
 }
 ```
 
-### 2. `Product` Schema
+### 2. `Product` Schema (`Product.js`)
+* **Purpose:** Master product catalog, real-time inventory levels, and Three.js 3D spatial coordinate layout.
 ```typescript
 {
   name: { type: String, required: true },
-  category: { type: String, required: true },
-  price: { type: Number, required: true },
-  costPrice: { type: Number, default: 0 },
-  stock: { type: Number, required: true, min: 0 },
-  salesVelocity: { type: Number, default: 0 },
-  image: { type: String, default: '' },
-  coordinates: {
-    shelfId: { type: String },
+  sku: { type: String, required: true, unique: true },
+  category: { type: String, required: true, index: true },
+  color: { type: String, required: true, index: true },
+  tags: { type: [String], default: [] },
+  price: { type: Number, required: true, min: 0 },
+  stock: { type: Number, required: true, min: 0, default: 0 },
+  imageUrl: { type: String },
+  coordinates3D: {
     x: { type: Number },
     y: { type: Number },
     z: { type: Number },
-    rotation: { type: Number }
-  }
-}
-```
-
-### 3. `FloorSwap` Schema
-```typescript
-{
-  activePairId: { type: String, required: true },
-  stationId: { type: String, required: true },
-  spotIndex: { type: Number, required: true },
-  executedItems: [{
-    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
-    role: { type: String }, // 'outerwear' | 'topwear' | 'bottomwear' | 'footwear'
-    fromCoords: { x: Number, y: Number, z: Number },
-    toCoords: { x: Number, y: Number, z: Number }
-  }],
-  displacedItems: [{
-    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
-    fromCoords: { x: Number, y: Number, z: Number },
-    toCoords: { x: Number, y: Number, z: Number }
-  }],
-  status: { type: String, enum: ['active', 'reverted'], default: 'active' },
+    zone: { type: String },
+    shelf: { type: String },
+    slot: { type: Number },
+    isRelocated: { type: Boolean, default: false }
+  },
   timestamps: true
 }
 ```
 
-### 4. `Order` Schema
+### 3. `Sale` Schema (`Sale.js`)
+* **Purpose:** POS transactional ledger capturing unit sales for velocity calculations ($V_d$), stockout warnings, and Apriori market basket analysis.
 ```typescript
 {
-  items: [{
-    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
-    quantity: { type: Number, required: true },
-    priceAtSale: { type: Number, required: true }
+  product: { type: Schema.Types.ObjectId, ref: 'Product', required: true, index: true },
+  quantity: { type: Number, required: true, min: 1 },
+  soldAt: { type: Date, default: Date.now, index: true },
+  timestamps: true
+}
+```
+
+### 4. `FloorSwap` Schema (`FloorSwap.js`)
+* **Purpose:** Audit record and persistent state machine tracking active physical displacements between shelves and mannequins with atomic rollback coordinates.
+```typescript
+{
+  swapMode: { type: String, enum: ['cupboard', 'hero_showcase'], required: true },
+  activePairId: { type: String, required: true },
+  spotIndex: { type: Number, default: 0 },
+  stationName: { type: String },
+  status: { type: String, enum: ['active', 'reverted'], default: 'active' },
+  staffName: { type: String, default: 'Floor Staff' },
+  executedItems: [{
+    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    productName: { type: String },
+    sku: { type: String },
+    category: { type: String },
+    role: { type: String }, // 'outerwear' | 'topwear' | 'bottomwear' | 'footwear'
+    originalCoords: { x: Number, y: Number, z: Number, zone: String },
+    targetCoords: { x: Number, y: Number, z: Number, zone: String },
+    executedAt: { type: Date, default: Date.now }
   }],
-  totalAmount: { type: Number, required: true },
-  paymentMethod: { type: String, enum: ['cash', 'upi', 'card'] },
-  customerName: { type: String, default: 'Walk-in' },
+  displacedItems: [{
+    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
+    targetCoords: { x: Number, y: Number, z: Number, zone: String }
+  }],
+  revertedAt: { type: Date },
+  timestamps: true
+}
+```
+
+### 5. `Planogram` Schema (`Planogram.js`)
+* **Purpose:** Visual merchandising layout configurations and pre-calculated shelf adjacency rules.
+```typescript
+{
+  activePairId: { type: String, default: 'sug-1' },
+  swapMode: { type: String, enum: ['cupboard', 'hero_showcase'], default: 'cupboard' },
+  spotId: { type: String, default: 'cupboard-adjacent' },
+  spotName: { type: String, default: 'Cupboard Adjacency Placement' },
+  sourceProductId: { type: String },
+  pairedProductId: { type: String },
+  applied: { type: Boolean, default: false },
+  lift: { type: String, default: '+82%' },
+  notes: { type: String, default: '' },
+  sourceCoordinates: { x: Number, y: Number, z: Number, zone: String },
+  originalPairedCoordinates: { x: Number, y: Number, z: Number, zone: String },
+  swappedPairedCoordinates: { x: Number, y: Number, z: Number, zone: String },
+  suggestedCoordinatesList: [{
+    productId: { type: String },
+    sku: { type: String },
+    name: { type: String },
+    x: { type: Number },
+    y: { type: Number },
+    z: { type: Number },
+    zone: { type: String }
+  }],
+  timestamps: true
+}
+```
+
+### 6. `RecommendationSnapshot` Schema (`RecommendationSnapshot.js`)
+* **Purpose:** Caches generated AI recommendations (Apriori + MAB + Groq Llama 3) to prevent redundant mathematical recomputation and reduce API latency to <10ms.
+```typescript
+{
+  recommendations: { type: Array, required: true },
+  lastCalculatedAt: { type: Date, default: Date.now },
+  calculatedBy: {
+    userId: { type: String, default: 'system' },
+    name: { type: String, default: 'System' },
+    role: { type: String, default: 'admin' }
+  },
+  useAI: { type: Boolean, default: true },
+  pairCount: { type: Number, default: 8 },
   timestamps: true
 }
 ```

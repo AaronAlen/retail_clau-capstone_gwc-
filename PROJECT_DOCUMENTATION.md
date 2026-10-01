@@ -134,12 +134,14 @@ Separation of duties implemented via JWT HttpOnly cookies and server middleware:
 
 ---
 
-## 🗄️ Database Models (MongoDB Mongoose)
+## 🗄️ Database Models (MongoDB Mongoose - 6 Active Schemas)
 
-1. **`User`**: `name`, `email`, `password` (bcrypt), `role` (`admin` | `manager` | `staff`), `timestamps`.
-2. **`Product`**: `name`, `category`, `price`, `stock`, `costPrice`, `salesVelocity`, `image`, `coordinates` (`x, y, z, rotation`).
-3. **`FloorSwap`**: `activePairId`, `stationId`, `spotIndex`, `executedItems` (productId, fromCoord, toCoord, role), `displacedItems`, `status` (`active` | `reverted`), `timestamps`.
-4. **`Order`**: `items`, `totalAmount`, `paymentMethod`, `customerName`, `timestamps`.
+1. **`User` (`User.js`)**: `name`, `email`, `password` (bcrypt), `role` (`admin` | `manager` | `staff`). Handles authentication and RBAC.
+2. **`Product` (`Product.js`)**: `name`, `sku`, `category`, `color`, `tags`, `price`, `stock`, `imageUrl`, `coordinates3D` (`x, y, z, zone, shelf, slot, isRelocated`). Master catalog & 3D spatial layout.
+3. **`Sale` (`Sale.js`)**: `product` (ref), `quantity`, `soldAt`. POS transactional ledger for sales velocity and Apriori association mining.
+4. **`FloorSwap` (`FloorSwap.js`)**: `swapMode`, `activePairId`, `spotIndex`, `executedItems` (productId, role, originalCoords, targetCoords), `displacedItems`, `status` (`active` | `reverted`). Persistent state machine for 1-by-1 swaps and atomic station resets.
+5. **`Planogram` (`Planogram.js`)**: `activePairId`, `swapMode`, `sourceProductId`, `pairedProductId`, `applied`, `lift`, `sourceCoordinates`, `suggestedCoordinatesList`. Visual merchandising shelf adjacency rules.
+6. **`RecommendationSnapshot` (`RecommendationSnapshot.js`)**: `recommendations`, `lastCalculatedAt`, `calculatedBy`, `useAI`, `pairCount`. AI calculation cache reducing page latency to <10ms.
 
 ---
 

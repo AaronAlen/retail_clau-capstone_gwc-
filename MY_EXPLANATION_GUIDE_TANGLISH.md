@@ -78,7 +78,113 @@ Mentor kandippa *"Oru oru role-kum enna permission irukku?"* nu kepaanga. Intha 
 
 ---
 
-## 🌟 4. Deep-Dive: Namma Pannina Complex Problem Fixes
+## 🗄️ 4. The 6 MongoDB Schemas & Their Purpose (Namma Backend-oda 6 Pillars!)
+
+Mentor: *"Unga backend-la ennena Mongoose Schemas irukku? Oru oru schemavoda purpose enna, athula enna data store aaguthu, ethukaga store aaguthu?"* nu ketta intha explanation-ah theliva kudunga:
+
+Namma project backend-la **Exactly 6 Schemas** irukku:
+1. `User.js` — Authentication & Enterprise RBAC
+2. `Product.js` — Digital Twin Master Catalog & 3D Spatial Inventory
+3. `Sale.js` — Real-Time POS Transaction Ledger
+4. `FloorSwap.js` — Physical Floor Displacement & Atomic Revert State Machine
+5. `Planogram.js` — Visual Merchandising Shelf Layouts & Pre-calculated Adjacencies
+6. `RecommendationSnapshot.js` — AI Market Basket Cache & Performance Optimization
+
+---
+
+### 1️⃣ `User` Schema (`User.js`)
+* **🎯 Purpose:** Store employees, managers, and administrators authentication & Role-Based Access Control (RBAC).
+* **📦 Ennena Store Aaguthu?**
+  * `name`: Staff-oda full name (e.g., "Rachel Adams").
+  * `email`: Work email address (unique, lowercase).
+  * `password`: Bcrypt hash (salt rounds 10, hidden by default with `select: false`).
+  * `role`: System authorization level (`admin` | `manager` | `staff`).
+  * `timestamps`: Account created & updated dates.
+* **💡 Ethukkaga Store Aaguthu?**
+  * Store personnel login pannumbothu credentials verify panni, JWT token-ah **HttpOnly Cookie**-la issue panna use aaguthu.
+  * Server-side route authorization middleware (`protect`, `authorize('admin')`) intha role-ah check panni thaan sensitive operations (like user creation, product deletion)-ah allow or block pannum.
+
+---
+
+### 2️⃣ `Product` Schema (`Product.js`)
+* **🎯 Purpose:** Showroom-la ulla all apparel products-oda master catalogue and avatrodha exact 3D visual coordinates maintain panrathu.
+* **📦 Ennena Store Aaguthu?**
+  * `name`, `sku`: Barcode/Stock Keeping Unit (e.g. `VEL-JKT-001`).
+  * `category`: Apparel category (`jackets`, `shirts`, `tshirts`, `jeans`, `shoes`).
+  * `color`, `tags`: Style tags (e.g., `['formal', 'luxury', 'linen']`).
+  * `price`, `stock`: Live inventory count (real-time).
+  * `imageUrl`: Cloudinary CDN product image URL.
+  * `coordinates3D`:
+    * `x, y, z`: Three.js 3D space-la antha product box irukura exact position.
+    * `zone, shelf, slot`: Entha cupboard, entha shelf row, entha slot index-la antha box irukku.
+    * `isRelocated`: Item current-ah mannequin-la display aagutha illai baseline shelf-la irukutha nu track panna boolean flag.
+* **💡 Ethukkaga Store Aaguthu?**
+  * Three.js 3D Visualizer showroom render pannumbothu, intha coordinates-ah vachu thaan 8 cupboards-la product boxes-ah correct shelf slots-la place pannum.
+  * Stock 0 aana automatic-ah dashboard-la low stock alerts trigger panna use aaguthu.
+
+---
+
+### 3️⃣ `Sale` Schema (`Sale.js`)
+* **🎯 Purpose:** Billing counter-la nadakkura ovvoru POS checkout transaction-ayum atomic record-ah log panrathu.
+* **📦 Ennena Store Aaguthu?**
+  * `product`: Entha product sell aachu (ObjectId ref to `Product` collection).
+  * `quantity`: Evlo units purchase pannanga (min: 1).
+  * `soldAt`: Sale nadantha exact timestamp (default: `Date.now`).
+* **💡 Ethukkaga Store Aaguthu?**
+  * **Daily Sales Velocity ($V_d$)** calculate panna (kadasi 7/14/30 days-la oru item per day evlo units poguthu).
+  * **Days of Stock Remaining ($DSR = \frac{\text{Current Stock}}{V_d}$)** predict panna.
+  * Apriori algorithm historical customer purchases-ah scan panni, entha items frequent-ah onna buy aaguthu nu **Market Basket Analysis** compute panna intha data thaan raw fuel!
+
+---
+
+### 4️⃣ `FloorSwap` Schema (`FloorSwap.js`)
+* **🎯 Purpose:** Shelves and Mannequins-kku naduvula nadakkura physical outfit displacement-ah track panni, atomic reset state-ah preserve panrathu.
+* **📦 Ennena Store Aaguthu?**
+  * `swapMode`: `cupboard` or `hero_showcase` (Featured Mannequin 1 or 2).
+  * `activePairId`: Entha AI recommendation pair deploy pannirukom.
+  * `spotIndex`, `stationName`: Mannequin podium identifier.
+  * `status`: Current state — `active` (mannequin-la irukku) or `reverted` (thirumba shelf-kku poiduchu).
+  * `staffName`: Entha manager/staff intha swap-ah execute pannanga.
+  * `executedItems`: Mannequin-kku vantha items array:
+    * `productId`, `role` (`outerwear`, `topwear`, `bottomwear`, `footwear`), `originalCoords` ($P_0$ shelf), `targetCoords` ($P_2$ mannequin), `executedAt`.
+  * `displacedItems`: Mannequin-la irunthu kick-out aagi shelf-kku thirumba pona previous items.
+  * `revertedAt`: Station reset panna date/time.
+* **💡 Ethukkaga Store Aaguthu?**
+  * Intha schema thaan **Incremental 1-by-1 Swap** and **Reset Station**-kku heart!
+  * Product-oda baseline home shelf coordinates (`originalCoords`)-ah inga store panrathala thaan, user eppo "Reset Station" click pannalum, all items automatic-ah reverse flight eduthu crt-ana cupboard slot-kku thirumba pogum!
+
+---
+
+### 5️⃣ `Planogram` Schema (`Planogram.js`)
+* **🎯 Purpose:** Visual Merchandising layout configuration and shelf adjacency rules-ah store panrathu.
+* **📦 Ennena Store Aaguthu?**
+  * `activePairId`, `swapMode`, `spotId`, `spotName`.
+  * `sourceProductId`, `pairedProductId`: Adjacency pair items.
+  * `applied`: Intha planogram shelf-la physically apply aayiducha nu boolean flag.
+  * `lift`: Expected sales lift percentage (e.g. `+82%`).
+  * `sourceCoordinates`, `originalPairedCoordinates`, `swappedPairedCoordinates`.
+  * `suggestedCoordinatesList`: Entire cupboard bay-oda optimized coordinate slots.
+* **💡 Ethukkaga Store Aaguthu?**
+  * Retail industry-la "Planogram" na visual blueprint of store shelves.
+  * AI generate panna spatial layout recommendations-ah physical showroom floor-la execute panrathukku munnadi oru blueprint-ah preview & save panna use aaguthu.
+
+---
+
+### 6️⃣ `RecommendationSnapshot` Schema (`RecommendationSnapshot.js`)
+* **🎯 Purpose:** AI Recommendation engine (Apriori + Multi-Armed Bandit + Groq LLM) output-ah cache panni instant load time provide panrathu.
+* **📦 Ennena Store Aaguthu?**
+  * `recommendations`: Pre-calculated outfit pairs array (items, Lift, Confidence, Support, AI reasoning).
+  * `lastCalculatedAt`: Kadasiya eppo AI calculation execute aachu.
+  * `calculatedBy`: `userId`, `name`, `role` (system or manager name).
+  * `useAI`: Groq LLM assistance enable aagi calculate aano-va nu boolean flag.
+  * `pairCount`: Total number of active bundles generated (e.g., 8 pairs).
+* **💡 Ethukkaga Store Aaguthu?**
+  * Ovvoru murai user page refresh pannumbothum oru heavy Apriori math calculation or Groq API call pannina, system slow aayidum and API rate limits hit aagum.
+  * Athanaala results-ah intha snapshot schema-la cache panni veppom. Manager "Recalculate" click panna mattum fresh-ah recalculate aagi intha snapshot update aagum. Ippo terminal loading time **<10 milliseconds**!
+
+---
+
+## 🌟 5. Deep-Dive: Namma Pannina Complex Problem Fixes
 
 Mentor kitta code-oda depth-ah kaata intha 4 complex features-ah highlight pannunga:
 
