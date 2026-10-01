@@ -1453,8 +1453,8 @@ export const Store3DVisualizerV2: React.FC<Store3DVisualizerProps> = ({
 
     // --- LUXURY STUDIO V2 SCENE SETUP (Obsidian Terrazzo & Architectural Glass) ---
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x070b14); // Deep luxury dark showroom ambiance
-    scene.fog = new THREE.FogExp2(0x070b14, 0.008);
+    scene.background = new THREE.Color(0x0a101d); // Deep architectural obsidian-sapphire
+    scene.fog = new THREE.FogExp2(0x0a101d, 0.0035); // Gentle atmospheric fog to keep all products crystal clear
 
     const camera = new THREE.PerspectiveCamera(38, width / height, 0.5, 150);
     camera.position.set(0, 20, 26);
@@ -1472,7 +1472,7 @@ export const Store3DVisualizerV2: React.FC<Store3DVisualizerProps> = ({
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75)); // Crisp rendering on mobile & Retina screens
     renderer.shadowMap.enabled = false; // Disabled shadowMap to maintain 60 FPS
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.35;
+    renderer.toneMappingExposure = 1.75; // Enhanced exposure for vibrant, high-clarity luxury boutique lighting
 
     const domElement = renderer.domElement;
     domElement.style.touchAction = "none";
@@ -1482,21 +1482,42 @@ export const Store3DVisualizerV2: React.FC<Store3DVisualizerProps> = ({
     container.innerHTML = "";
     container.appendChild(domElement);
 
-    // --- HIGH-END STUDIO LIGHTING ---
-    const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 1.1); // Crisp cool sky + warm dark floor bounce
+    // --- HIGH-END STUDIO LIGHTING (Vibrant & High-Clarity) ---
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x1e293b, 1.75); // Crisp bright sky + soft floor bounce
     scene.add(hemiLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfff7ed, 2.4); // Golden key light
+    const dirLight = new THREE.DirectionalLight(0xfff7ed, 3.2); // Warm golden key light
     dirLight.position.set(16, 26, 14);
     scene.add(dirLight);
 
-    const cyanRimLight = new THREE.DirectionalLight(0x0284c7, 1.2); // Cool cyan architectural backlight
+    const cyanRimLight = new THREE.DirectionalLight(0x38bdf8, 1.8); // Architectural cyan rim light
     cyanRimLight.position.set(-16, 22, -14);
     scene.add(cyanRimLight);
 
-    const centerStageLight = new THREE.PointLight(0xfef08a, 2.5, 22); // Dramatic runway spotlight
+    const centerStageLight = new THREE.PointLight(0xfef08a, 3.6, 26); // Dramatic runway center spotlight
     centerStageLight.position.set(0, 7.5, 1.8);
     scene.add(centerStageLight);
+
+    // Dedicated Left Cupboard Spotlight (Executive Outerwear & Shirts)
+    const leftCupboardSpot = new THREE.SpotLight(0xfffbeb, 2.8, 30, Math.PI / 3.2, 0.4);
+    leftCupboardSpot.position.set(-6, 11, 0);
+    leftCupboardSpot.target.position.set(-11, 2, 0);
+    scene.add(leftCupboardSpot);
+    scene.add(leftCupboardSpot.target);
+
+    // Dedicated Right Cupboard Spotlight (Luxury Denim & Streetwear)
+    const rightCupboardSpot = new THREE.SpotLight(0xfffbeb, 2.8, 30, Math.PI / 3.2, 0.4);
+    rightCupboardSpot.position.set(6, 11, 0);
+    rightCupboardSpot.target.position.set(11, 2, 0);
+    scene.add(rightCupboardSpot);
+    scene.add(rightCupboardSpot.target);
+
+    // Dedicated Footwear Gallery Spotlight (Back Runway)
+    const footwearSpot = new THREE.SpotLight(0x7dd3fc, 2.4, 28, Math.PI / 3.2, 0.45);
+    footwearSpot.position.set(0, 9, -5);
+    footwearSpot.target.position.set(0, 1.2, -11.5);
+    scene.add(footwearSpot);
+    scene.add(footwearSpot.target);
 
     // --- ULTRA-GLOSSY NERO MARQUINA / DARK TERRAZZO REFLECTIVE FLOOR ---
     const SHOWROOM_WIDTH = 36;

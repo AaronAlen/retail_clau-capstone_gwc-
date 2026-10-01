@@ -9,45 +9,36 @@ export interface AuthUser {
 
 interface AuthState {
   user: AuthUser | null;
-  accessToken: string | null;
-  refreshToken: string | null;
 }
 
-const persisted = localStorage.getItem("velocity_auth");
-const initialState: AuthState = persisted
-  ? JSON.parse(persisted)
-  : {
-      user: { id: "admin-1", name: "Admin", email: "admin@velocity.com", role: "admin" },
-      accessToken: "demo-token",
-      refreshToken: "demo-refresh",
-    };
-
-const persist = (state: AuthState) => {
-  localStorage.setItem("velocity_auth", JSON.stringify(state));
+const persistedUser = localStorage.getItem("velocity_user");
+const initialState: AuthState = {
+  user: persistedUser ? JSON.parse(persistedUser) : null,
 };
 
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<AuthState>) => {
-      state.user = action.payload.user;
-      state.accessToken = action.payload.accessToken;
-      state.refreshToken = action.payload.refreshToken;
-      persist(state);
+    setUser: (state, action: PayloadAction<AuthUser | null>) => {
+      state.user = action.payload;
+      if (action.payload) {
+        localStorage.setItem("velocity_user", JSON.stringify(action.payload));
+      } else {
+        localStorage.removeItem("velocity_user");
+      }
     },
-    setAccessToken: (state, action: PayloadAction<string>) => {
-      state.accessToken = action.payload;
-      persist(state);
+    setCredentials: (state, action: PayloadAction<{ user: AuthUser; accessToken?: string; refreshToken?: string }>) => {
+      state.user = action.payload.user;
+      localStorage.setItem("velocity_user", JSON.stringify(action.payload.user));
+      // NOTE: JWT access & refresh tokens are stored exclusively in HttpOnly secure cookies for OWASP security
     },
     logout: (state) => {
       state.user = null;
-      state.accessToken = null;
-      state.refreshToken = null;
-      localStorage.removeItem("velocity_auth");
+      localStorage.removeItem("velocity_user");
     },
   },
 });
 
-export const { setCredentials, setAccessToken, logout } = authSlice.actions;
+export const { setUser, setCredentials, logout } = authSlice.actions;
 export default authSlice.reducer;

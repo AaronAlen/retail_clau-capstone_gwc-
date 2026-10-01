@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
 import routes from "./routes";
 import { notFound, errorHandler } from "./middleware/error";
 
@@ -35,6 +36,7 @@ export const createApp = (): Application => {
     })
   );
   app.use(express.json());
+  app.use(cookieParser());
   app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
   // Relax rate limiter in development so multi-device live sync and 3D planogram testing are never blocked
