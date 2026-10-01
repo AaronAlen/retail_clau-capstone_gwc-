@@ -133,20 +133,157 @@ Mentor kitta code-oda depth-ah kaata intha 4 complex features-ah highlight pannu
 
 ---
 
-## ❓ 6. Expected Mentor Questions & Winning Answers
+## ❓ 6. Expected Mentor Questions & Winning Answers (Top 15 Q&A Master List)
 
-**Q1: Apriori Algorithm epdi work aaguthu?**
-> **Answer:** *"Sir, Apriori algorithm historical customer order baskets-ah scan panni Support, Confidence, and Lift calculate pannum. Lift > 1 iruntha, antha rendu products-um random chance-ah vida athigama onna purchase aaguthu nu artham (e.g. Blazer + Formal Shirt). Athai nanga mannequin-la feature panni cross-selling boost panrom."*
-
-**Q2: Multi-Armed Bandit ethuku use panreenga?**
-> **Answer:** *"Sir, eppavume best-seller items-ah mattum display panna, pudhu items or high-profit margin items sell aagathu. Multi-Armed Bandit Exploration vs. Exploitation balance pannum — 80% time proven bestsellers kaatum, 20% time high-margin or slow-moving items-ah test panni new sales opportunities discover pannum."*
-
-**Q3: Socket.IO role enna?**
-> **Answer:** *"Sir, store manager floor swap execute pannina, showroom floor-la irukura tablet displays, billing POS terminals, and other manager dashboards-kku page refresh illama fraction of a second-la live state sync aagum."*
-
-**Q4: Security epdi handle pannirukeenga?**
-> **Answer:** *"JWT tokens localStorage-la store pannama, **HttpOnly, Secure, SameSite=Strict cookies**-la store panrom. Athanaala XSS attacks moolama token-ah steal panna mudiyathu. Plus, backend REST API-layum `protect` and `authorize('admin')` middleware vachu server-side authorization guarantee panrom."*
+Mentor kitta irunthu vara koodiya top 15 technical & conceptual questions and avangalukku namma solla vendiya confident Tanglish answers:
 
 ---
 
-Bro, intha documents ungaluku full confidence tharum! Neenga cool-ah presentation-ah start pannunga, all the very best! 🚀
+### 🧠 Category A: AI & Machine Learning Questions
+
+#### Q1: Apriori Algorithm epdi work aaguthu? Support, Confidence, Lift na enna?
+* **Mentor Testing:** Algorithm basics purinjirukaa nu paakuranaga.
+* **Winning Answer:**
+  > *"Sir, Apriori algorithm historical POS customer bills-ah scan panni, entha products lam onna vaanguraanga nu association rules kandupidikuthu.*
+  > * Ithula 3 core metrics irukku:
+  >   1. **Support:** Total transactions-la intha combination evlo percentage nadanthurukku ($\frac{P(A \cap B)}{Total}$).
+  >   2. **Confidence:** Product A vaanguna customers, Product B-ayum vaanga evlo probability irukku ($\frac{P(A \cap B)}{P(A)}$).
+  >   3. **Lift:** Intha correlation random coincidence-ah illai unmaiyave strong bond-ah nu measure pannum ($\frac{Confidence}{P(B)}$).
+  > * **Lift > 1** iruntha, antha pair-ah mannequin-la display panna cross-selling & sales revenue significantly boost aagum sir."*
+
+---
+
+#### Q2: Simple-ah top-selling products-ah sort panna pothume, Multi-Armed Bandit (MAB) ethuku theva?
+* **Mentor Testing:** Real-world retail economics and Exploration vs Exploitation understanding.
+* **Winning Answer:**
+  > *"Sir, top sellers-ah mattum sort panni display panna, athu **100% Exploitation**. Appo store-kku pudhusa vantha items or nalla profit margin irukkura slow-moving items epavume customer kannula padathu, dead stock aayidum.*
+  > * **Multi-Armed Bandit (Reinforcement Learning)** intha problem-ah solve pannum. 80% time proven bestsellers-ah recommend pannum, 20% time high-margin/new items-ah 'Explore' panni test pannum. Customer athai vaanga start pannina, antha arm-oda reward weight increase aagi recommendation score-la mela varum sir."*
+
+---
+
+#### Q3: AI Copilot epdi live database data-va edukkuthu? Hallucinate aagatha?
+* **Mentor Testing:** LLM architecture, prompt engineering, RAG / Context injection.
+* **Winning Answer:**
+  > *"Sir, nanga **Context Injection Architecture** use panrom. Frontend or user copilot kitta question kekumbothu, backend current showroom inventory data (stock counts, velocity, low-stock items) MongoDB-la irunthu query panni, system prompt kulla structured context-ah inject pannidum.*
+  > * Groq Llama 3 model intha verified store context-ah base panni mattum thaan answer generate pannum. Athanaala fake information hallucinate aagathu sir."*
+
+---
+
+### 🌐 Category B: 3D Graphics & Three.js (WebGL) Questions
+
+#### Q4: Three.js 3D Store canvas browser-la lag aagatha? How do you maintain 60 FPS?
+* **Mentor Testing:** WebGL optimization & Frontend performance.
+* **Winning Answer:**
+  > *"Sir, multiple performance optimizations pannirukom:
+  > 1. **Lazy Loading:** `React.lazy` and `Suspense` use panni initial page load-la 3D visualizer background-la chunk-ah load aagum.
+  > 2. **Geometry & Material Reusability:** Duplicate 3D meshes create pannama instanced shapes and shared textures use panrom.
+  > 3. **Smart RequestAnimationFrame:** OrbitControls or animation nadakkumbothu mattum re-render aagi GPU load-ah control pannuthu.
+  > 4. **Vite Code Splitting:** Three.js engine `vendor-three` தனி JS bundle-ah split panni browser cache-la store panrom sir."*
+
+---
+
+#### Q5: Bilateral 2-Way Flight Animation epdi mathematically work aaguthu?
+* **Mentor Testing:** Computer graphics & 3D math (vectors, curves).
+* **Winning Answer:**
+  > *"Sir, linear straight line-la items move aana visual appeal irukkathu. So nanga **Quadratic Bezier Curve Trajectory** use panrom.*
+  > * Start point (Shelf coordinates $P_0$) and End point (Mannequin coordinates $P_2$) ku naduvula, oru elevated Control Point ($P_1$) calculate panrom.*
+  > * Formula: $B(t) = (1-t)^2 P_0 + 2(1-t)t P_1 + t^2 P_2$, where $t \in [0, 1]$.
+  > * Incoming item $0 \rightarrow 1$ pogum pothu, mannequin-la iruntha pazhaiya item parallel-ah reverse vector $1 \rightarrow 0$ glide aagi shelf-kku poidum. Idhu thaan Bilateral Flight Animation sir."*
+
+---
+
+#### Q6: 3D Canvas-la mouse vachu click pannina epdi crt-ana product identify aaguthu?
+* **Mentor Testing:** Three.js Raycasting concept.
+* **Winning Answer:**
+  > *"Sir, **THREE.Raycaster** use panrom. User screen-la click panna 2D mouse pixel coordinates-ah normalized device coordinates (-1 to +1) convert panni, camera perspective lens moolama 3D scene kulla ray cast panrom. Antha ray intersect aagura mesh-oda `userData.productId`-ah vachu antha product details popover render aaguthu sir."*
+
+---
+
+#### Q7: Shoe model mannequin pedestal kulla maraivatha epdi solve panneenga? (Footwear Elevation)
+* **Mentor Testing:** Real-world 3D asset debugging ability.
+* **Winning Answer:**
+  > *"Sir, 3D shoe models import pannumbothu default origin (0,0,0) center-la irukkum. Mannequin-oda round pedestal height + floor thickness add aagumbothu shoe mesh floor kulla sink aagum.*
+  > * Nanga vertical elevation offset logic add pannom: `yOffset = pedestalHeight + shoeBoundingBox.y / 2 + 0.05`. Ippo shoes pedestal surface mela neat-ah float aagi visually perfect-ah display aaguthu sir."*
+
+---
+
+### 🗄️ Category C: Backend, Database & State Management
+
+#### Q8: Incremental 1-by-1 Floor Swap-la enna bug irunthuchu? Athai epdi fix panneenga?
+* **Mentor Testing:** Problem solving & full-stack debugging skills.
+* **Winning Answer:**
+  > *"Sir, initial version-la oru outfit full-ah swap panna work aachu. Aana user 1 item (e.g. Pants) swap pannitu thirumba 2nd item (e.g. Jacket) swap pannina, backend previous record-ah overwrite panni 1st item-ah revert pannidum.*
+  > * Athanaala MongoDB `FloorSwap` controller-la **Incremental Role Stacking** implement pannom.
+  > * incoming item-oda role (`outerwear`, `topwear`, `bottomwear`, `footwear`)-ah match panni, vera role items-ah retain panni merge pannuvom.
+  > * Ippo user individual items swap pannalum, Reset click panna active station-la ulla **all items atomically home shelf-kku revert aagum** sir."*
+
+---
+
+#### Q9: Relational SQL Database use pannama yen MongoDB Atlas choose panneenga?
+* **Mentor Testing:** Database selection trade-offs.
+* **Winning Answer:**
+  > *"Sir, 3 main reasons:
+  > 1. **Flexible Spatial Coordinates:** Cupboard coordinates, mannequin offsets, nested bounding boxes-lam document structure-la schema agility tharum.
+  > 2. **Nested State History:** `FloorSwap` collection-la executed items and displaced items array-ah atomic sub-documents-ah store panna MongoDB optimal.
+  > 3. **Speed & Scalability:** Real-time POS transactions and velocity queries JSON format-la Express and Socket.IO kooda zero serialization overhead-la execute aagum sir."*
+
+---
+
+#### Q10: Socket.IO ethukaga theva? Normal REST API-ye pothume?
+* **Mentor Testing:** Real-time event architecture.
+* **Winning Answer:**
+  > *"Sir, retail store-la multiple screens irukkum: Manager laptop, Billing counter POS tablet, Showroom display screen.*
+  > * Store manager recommendation approve panni mannequin-la swap execute pannina, REST API mattum iruntha matha screens refresh pannina thaan theriyum.*
+  > * Socket.IO use panrathala, manager swap click panna instantaneous-ah all connected client terminals-kum event broadcast aagi 3D visualizer sync aayidum sir."*
+
+---
+
+### 🛡️ Category D: Security & Role-Based Access Control (RBAC)
+
+#### Q11: JWT token-ah localStorage-la vaikama yen HttpOnly Cookie-la vecheenga?
+* **Mentor Testing:** Web Application Security & OWASP standards.
+* **Winning Answer:**
+  > *"Sir, localStorage-la JWT token store pannina, third-party script or XSS (Cross-Site Scripting) vulnerability moolama JavaScript code antha token-ah easy-ah access panni steal pannidum.*
+  > * But **HttpOnly, Secure, SameSite=Strict cookies**-la token store pannina, browser JavaScript-kku antha cookie invisible. Server mattum thaan read panna mudiyum. Idhunaala XSS token theft 100% prevent aaguthu sir."*
+
+---
+
+#### Q12: Frontend-la button-ah hide panna pothuma? Hacker Postman-la direct API call panna enna aagum?
+* **Mentor Testing:** Client-side vs Server-side security enforcement.
+* **Winning Answer:**
+  > *"Sir, client-side hiding UI convenience-kaga mattum thaan. True security backend-la irukku.*
+  > * Namma Express backend-la `router.use(protect, authorize('admin'))` middleware enforce pannirukom.*
+  > * Oru Cashier or outside hacker Postman moolama `POST /api/users` or `DELETE /api/products` call panna kooda, server JWT token claim verify panni **403 Forbidden: Not authorized as admin** nu request-ah instantly drop pannidum sir."*
+
+---
+
+#### Q13: Login page-la yen User Registration form vekkala?
+* **Mentor Testing:** Enterprise workflow understanding.
+* **Winning Answer:**
+  > *"Sir, idhu public e-commerce app kedaiyathu; idhu enterprise store management software. Yaaru vena account open panni store operations-ah modify panna koodathu.*
+  > * Store Owner / Administrator mattum thaan `Users` tab moolama authorized employees-kku role assign panni accounts create panna mudiyum. Idhu thaan real enterprise retail security standard sir."*
+
+---
+
+### 💼 Category E: Business Value & Real-World Scalability
+
+#### Q14: Real-world retail chain-la 10,000 products iruntha intha 3D canvas handle pannuma?
+* **Mentor Testing:** System scalability & production readiness.
+* **Winning Answer:**
+  > *"Sir, showroom floor display-kku eppavume curated active inventory (e.g. 50-100 featured display items) thaan physical cupboards and mannequins-la irukkum. Warehouse-la irukura 10,000 items backend MongoDB-la indexed-ah pagination moolama store aagum.*
+  > * Three.js-la **Level-of-Detail (LOD)** and **Frustum Culling** use panna, camera paakura view-la ulla items mattum thaan render aagum. So 10,000 products catalogue irunthalum zero frame drop-la run aagum sir."*
+
+---
+
+#### Q15: Intha project-oda Business Impact / ROI (Return on Investment) enna?
+* **Mentor Testing:** Business viability of the Capstone project.
+* **Winning Answer:**
+  > *"Sir, 3 major business impacts:
+  > 1. **Basket Size Growth:** Apriori bundle recommendations mannequin-la feature aagumbothu average order value 15-25% increase aagum (cross-selling).
+  > 2. **Reduced Dead Stock:** Multi-Armed Bandit slow-moving high-margin clothes-ah spot panni promote panrathala inventory write-offs kuraiyum.
+  > 3. **Time Efficiency:** Traditional stores-la 2 weeks edukkura visual merchandising planning and trial-and-error, intha platform moolama seconds-la simulate panni implement panna mudiyum sir."*
+
+---
+
+Bro, intha 15 questions & answers-ah oru murai vaasichu paathukonga. Evaluator entha angle-la question kettalum neenga top-tier technical confidence-oda answer panna mudiyum! All the best! 🚀
+
