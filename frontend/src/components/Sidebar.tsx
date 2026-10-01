@@ -2,7 +2,7 @@ import React from "react";
 import { NavLink } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
-import { Sparkles, X } from "lucide-react";
+import { LuSparkles as Sparkles, LuX as X } from "react-icons/lu";
 
 interface SidebarProps {
   onOpenCopilot?: () => void;

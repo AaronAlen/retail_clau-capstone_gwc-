@@ -4,7 +4,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
 import { RootState } from "../store/store";
-import { Bell, Sparkles, LogOut, AlertCircle, Menu, Download } from "lucide-react";
+import {
+  LuBell as Bell,
+  LuSparkles as Sparkles,
+  LuLogOut as LogOut,
+  LuCircleAlert as AlertCircle,
+  LuMenu as Menu,
+  LuDownload as Download,
+} from "react-icons/lu";
 
 interface NavbarProps {
   title: string;

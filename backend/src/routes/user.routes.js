@@ -7,6 +7,7 @@ const user_controller_1 = require("../controllers/user.controller");
 const router = (0, express_1.Router)();
 router.use(auth_1.protect, (0, role_1.authorize)("admin"));
 router.get("/", user_controller_1.listUsers);
+router.post("/", user_controller_1.createUser);
 router.put("/:id/role", user_controller_1.updateUserRole);
 router.delete("/:id", user_controller_1.deleteUser);
 exports.default = router;

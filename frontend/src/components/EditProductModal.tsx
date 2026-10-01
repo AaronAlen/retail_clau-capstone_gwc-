@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
-import { X, Edit3, Trash2, AlertTriangle, Image as ImageIcon, Upload, Loader2, Cloud } from "lucide-react";
+import {
+  LuX as X,
+  LuFilePen as Edit3,
+  LuTrash2 as Trash2,
+  LuTriangleAlert as AlertTriangle,
+  LuImage as ImageIcon,
+  LuUpload as Upload,
+  LuLoaderCircle as Loader2,
+  LuCloud as Cloud,
+} from "react-icons/lu";
 import { Product } from "../store/slices/productSlice";
 import { getProductImage } from "../utils/productImages";
 import { useToast } from "../context/ToastContext";

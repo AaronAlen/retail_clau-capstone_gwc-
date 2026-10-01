@@ -4,14 +4,16 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { setCredentials } from "../store/slices/authSlice";
 import api from "../services/api";
-import { ShieldCheck, UserPlus, LogIn, KeyRound, Sparkles } from "lucide-react";
+import {
+  LuShieldCheck as ShieldCheck,
+  LuLogIn as LogIn,
+  LuKeyRound as KeyRound,
+  LuSparkles as Sparkles,
+} from "react-icons/lu";
 
 const Login = () => {
-  const [isRegister, setIsRegister] = useState(false);
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"admin" | "manager" | "staff">("staff");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const dispatch = useDispatch();
@@ -22,27 +24,19 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      if (isRegister) {
-        // Register new user into MongoDB with HttpOnly cookie session
-        const { data } = await api.post("/auth/register", { name, email, password, role });
-        dispatch(setCredentials(data));
-        navigate("/");
-      } else {
-        // Login existing user with HttpOnly cookie session
-        const { data } = await api.post("/auth/login", { email, password });
-        dispatch(setCredentials(data));
-        navigate("/");
-      }
+      // Login existing user with HttpOnly cookie session
+      const { data } = await api.post("/auth/login", { email, password });
+      dispatch(setCredentials(data));
+      navigate("/");
     } catch (err) {
       const message = axios.isAxiosError(err) ? err.response?.data?.message : null;
-      setError(message || (isRegister ? "Registration failed" : "Login failed"));
+      setError(message || "Login failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleDemoFill = (demoEmail: string, demoPass: string) => {
-    setIsRegister(false);
     setEmail(demoEmail);
     setPassword(demoPass);
     setError("");
@@ -66,38 +60,15 @@ const Login = () => {
           <p className="text-xs text-stone-500 font-medium">Autonomous AI Showroom & Merchandising Engine</p>
         </div>
 
-        {/* Tab Toggle: Sign In vs Create Account */}
-        <div className="grid grid-cols-2 bg-[#F8F2E6] p-1.5 rounded-2xl border border-[#E5D7BE]">
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(false);
-              setError("");
-            }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              !isRegister
-                ? "bg-white text-orange-700 shadow-sm border border-[#E5D7BE]/70 font-black"
-                : "text-stone-600 hover:text-stone-900"
-            }`}
-          >
+        {/* Portal Access Header */}
+        <div className="text-center pb-1 border-b border-[#E5D7BE]/70">
+          <h2 className="text-xs font-black uppercase tracking-wider text-orange-800 flex items-center justify-center gap-1.5">
             <LogIn className="w-3.5 h-3.5" />
-            Sign In
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setIsRegister(true);
-              setError("");
-            }}
-            className={`py-2 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer ${
-              isRegister
-                ? "bg-white text-orange-700 shadow-sm border border-[#E5D7BE]/70 font-black"
-                : "text-stone-600 hover:text-stone-900"
-            }`}
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            Create Account
-          </button>
+            <span>Store Personnel Authentication</span>
+          </h2>
+          <p className="text-[11px] text-stone-400 mt-0.5">
+            Authorized access only. New personnel must be registered by Store Admin.
+          </p>
         </div>
 
         {/* Error Alert */}
@@ -110,20 +81,6 @@ const Login = () => {
 
         {/* Auth Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {isRegister && (
-            <div>
-              <label className="text-xs font-bold text-stone-700">Full Name</label>
-              <input
-                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 placeholder-stone-400 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all font-medium"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. John Doe"
-                type="text"
-                required
-              />
-            </div>
-          )}
-
           <div>
             <label className="text-xs font-bold text-stone-700">Work Email</label>
             <input
@@ -148,27 +105,12 @@ const Login = () => {
             />
           </div>
 
-          {isRegister && (
-            <div>
-              <label className="text-xs font-bold text-stone-700">Assigned Store Role</label>
-              <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as any)}
-                className="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#FAF5EE] border border-[#E5D7BE] text-stone-900 text-sm focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20 transition-all cursor-pointer font-bold"
-              >
-                <option value="staff">Staff Cashier (POS & Sales Access)</option>
-                <option value="manager">Floor Manager (Inventory & Merchandising)</option>
-                <option value="admin">Store Administrator (Full Control)</option>
-              </select>
-            </div>
-          )}
-
           <button
             type="submit"
             className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-orange-500 via-amber-500 to-orange-600 hover:from-orange-600 hover:to-amber-600 text-white font-black text-sm tracking-wide shadow-md shadow-orange-500/25 transition-all active:scale-[0.99] disabled:opacity-50 cursor-pointer"
             disabled={loading}
           >
-            {loading ? "Processing..." : isRegister ? "Create Account & Sign In" : "Sign In to Dashboard"}
+            {loading ? "Signing in..." : "Sign In to Dashboard"}
           </button>
         </form>
 

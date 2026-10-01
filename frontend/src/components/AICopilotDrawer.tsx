@@ -1,20 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import {
-  Sparkles,
-  X,
-  Send,
-  Bot,
-  User,
-  RefreshCw,
-  Lightbulb,
-  ShoppingCart,
-  Plus,
-  ArrowRight,
-  TrendingUp,
-  AlertCircle,
-  ExternalLink,
-} from "lucide-react";
+  LuSparkles as Sparkles,
+  LuX as X,
+  LuSend as Send,
+  LuBot as Bot,
+  LuUser as User,
+  LuRefreshCw as RefreshCw,
+  LuLightbulb as Lightbulb,
+  LuShoppingCart as ShoppingCart,
+  LuPlus as Plus,
+  LuArrowRight as ArrowRight,
+  LuTrendingUp as TrendingUp,
+  LuCircleAlert as AlertCircle,
+  LuExternalLink as ExternalLink,
+} from "react-icons/lu";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../store/store";
 import { fetchProducts, Product } from "../store/slices/productSlice";

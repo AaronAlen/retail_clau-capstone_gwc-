@@ -1,5 +1,11 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
-import { CheckCircle2, AlertTriangle, Info, XCircle, X } from "lucide-react";
+import {
+  LuCircleCheck as CheckCircle2,
+  LuTriangleAlert as AlertTriangle,
+  LuInfo as Info,
+  LuCircleX as XCircle,
+  LuX as X,
+} from "react-icons/lu";
 
 export type ToastType = "success" | "error" | "info" | "warning";
 

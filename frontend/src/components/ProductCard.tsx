@@ -1,7 +1,7 @@
 import React from "react";
 import { Product } from "../store/slices/productSlice";
 import { getProductImage, getFallbackProductSVG } from "../utils/productImages";
-import { ShoppingCart, Edit2 } from "lucide-react";
+import { LuShoppingCart as ShoppingCart, LuSquarePen as Edit2 } from "react-icons/lu";
 
 interface ProductCardProps {
   product: Product;

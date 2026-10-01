@@ -101,8 +101,7 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(28, 22, 36, 0.35);
-  border-radius: 9999px;
+  background: transparent !important;
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(245, 158, 11, 0.45);
@@ -115,7 +114,7 @@ body {
 }
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(245, 158, 11, 0.45) rgba(28, 22, 36, 0.3);
+  scrollbar-color: rgba(245, 158, 11, 0.45) transparent !important;
 }
 
 /* Hide scrollbars when explicitly requested */

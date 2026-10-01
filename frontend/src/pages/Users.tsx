@@ -1,6 +1,17 @@
 import { useEffect, useState, FormEvent } from "react";
 import api from "../services/api";
-import { ShieldCheck, UserCheck, Users as UsersIcon, Check, Key, UserPlus, X, Lock, Mail, User } from "lucide-react";
+import {
+  LuShieldCheck as ShieldCheck,
+  LuUserCheck as UserCheck,
+  LuUsers as UsersIcon,
+  LuCheck as Check,
+  LuKey as Key,
+  LuUserPlus as UserPlus,
+  LuX as X,
+  LuLock as Lock,
+  LuMail as Mail,
+  LuUser as User,
+} from "react-icons/lu";
 import { useToast } from "../context/ToastContext";
 
 interface UserRow {
@@ -55,7 +66,11 @@ const ROLE_DEFINITIONS = [
   },
 ];
 
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
+
 const Users = () => {
+  const currentUser = useSelector((state: RootState) => state.auth.user);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [newName, setNewName] = useState("");
@@ -93,7 +108,8 @@ const Users = () => {
     if (!newName || !newEmail || !newPassword) return;
     setSubmitting(true);
     try {
-      await api.post("/auth/register", {
+      // Admin-only creation endpoint in MongoDB
+      await api.post("/users", {
         name: newName,
         email: newEmail,
         password: newPassword,
@@ -113,6 +129,22 @@ const Users = () => {
       setSubmitting(false);
     }
   };
+
+  if (currentUser && currentUser.role !== "admin") {
+    return (
+      <div className="px-8 pb-10 flex items-center justify-center min-h-[60vh]">
+        <div className="card max-w-md text-center p-8 space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h2 className="text-lg font-black text-stone-900">Administrator Access Required</h2>
+          <p className="text-xs text-stone-500">
+            Only store administrators have authorization to access the User Management roster and create employee accounts.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-8 pb-10 space-y-6">

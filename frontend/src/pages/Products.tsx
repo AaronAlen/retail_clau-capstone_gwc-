@@ -7,7 +7,15 @@ import { QuickSaleModal } from "../components/QuickSaleModal";
 import { EditProductModal } from "../components/EditProductModal";
 import { useSocket } from "../hooks/useSocket";
 import api from "../services/api";
-import { Search, Plus, Filter, Upload, Loader2, Image as ImageIcon, Check } from "lucide-react";
+import {
+  LuSearch as Search,
+  LuPlus as Plus,
+  LuFilter as Filter,
+  LuUpload as Upload,
+  LuLoaderCircle as Loader2,
+  LuImage as ImageIcon,
+  LuCheck as Check,
+} from "react-icons/lu";
 import { useToast } from "../context/ToastContext";
 import { getProductImage } from "../utils/productImages";
 

@@ -45,7 +45,7 @@ export default defineConfig({
             if (id.includes("@reduxjs") || id.includes("react-redux")) {
               return "vendor-redux";
             }
-            if (id.includes("lucide-react")) {
+            if (id.includes("react-icons")) {
               return "vendor-icons";
             }
             if (id.includes("socket.io-client") || id.includes("axios")) {

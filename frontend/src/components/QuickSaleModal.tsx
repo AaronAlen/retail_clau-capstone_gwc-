@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { X, ShoppingBag, CreditCard, Banknote, QrCode, CheckCircle2 } from "lucide-react";
+import {
+  LuX as X,
+  LuShoppingBag as ShoppingBag,
+  LuCreditCard as CreditCard,
+  LuBanknote as Banknote,
+  LuQrCode as QrCode,
+  LuCircleCheck as CheckCircle2,
+} from "react-icons/lu";
 import { Product } from "../store/slices/productSlice";
 import { getProductImage } from "../utils/productImages";
 import { useToast } from "../context/ToastContext";

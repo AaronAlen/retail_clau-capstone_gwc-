@@ -3,7 +3,12 @@ import api from "../services/api";
 import { Product } from "../store/slices/productSlice";
 import { useSocket } from "../hooks/useSocket";
 import { QuickSaleModal } from "../components/QuickSaleModal";
-import { Download, ShoppingCart, Calendar, AlertCircle } from "lucide-react";
+import {
+  LuDownload as Download,
+  LuShoppingCart as ShoppingCart,
+  LuCalendar as Calendar,
+  LuCircleAlert as AlertCircle,
+} from "react-icons/lu";
 
 interface VelocityRow {
   product: Product;

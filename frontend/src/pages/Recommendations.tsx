@@ -7,24 +7,24 @@ import { QuickSaleModal } from "../components/QuickSaleModal";
 import { Product } from "../store/slices/productSlice";
 import { useNavigate } from "react-router-dom";
 import {
-  Sparkles,
-  ArrowRight,
-  CheckCircle2,
-  ShoppingCart,
-  MapPin,
-  Store,
-  Eye,
-  Crown,
-  Layers,
-  Flame,
-  Zap,
-  Filter,
-  RefreshCw,
-  Lock,
-  Database,
-  ShieldCheck,
-  Clock,
-} from "lucide-react";
+  LuSparkles as Sparkles,
+  LuArrowRight as ArrowRight,
+  LuCircleCheck as CheckCircle2,
+  LuShoppingCart as ShoppingCart,
+  LuMapPin as MapPin,
+  LuStore as Store,
+  LuEye as Eye,
+  LuCrown as Crown,
+  LuLayers as Layers,
+  LuFlame as Flame,
+  LuZap as Zap,
+  LuFilter as Filter,
+  LuRefreshCw as RefreshCw,
+  LuLock as Lock,
+  LuDatabase as Database,
+  LuShieldCheck as ShieldCheck,
+  LuClock as Clock,
+} from "react-icons/lu";
 import { buildPlanogramCoordPayload, getPopularSpotByIndex } from "../utils/showroomCoordinates";
 import { useToast } from "../context/ToastContext";
 

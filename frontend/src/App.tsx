@@ -13,7 +13,13 @@ import Users from "./pages/Users";
 import { AICopilotDrawer } from "./components/AICopilotDrawer";
 import api from "./services/api";
 import { useSocket } from "./hooks/useSocket";
-import { LayoutDashboard, ShoppingBag, Boxes, Sparkles, Bot } from "lucide-react";
+import {
+  LuLayoutDashboard as LayoutDashboard,
+  LuShoppingBag as ShoppingBag,
+  LuBoxes as Boxes,
+  LuSparkles as Sparkles,
+  LuBot as Bot,
+} from "react-icons/lu";
 
 const Layout = ({
   title,

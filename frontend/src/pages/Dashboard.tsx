@@ -5,7 +5,16 @@ import api from "../services/api";
 import { useSocket } from "../hooks/useSocket";
 import { Product } from "../store/slices/productSlice";
 import { QuickSaleModal } from "../components/QuickSaleModal";
-import { TrendingUp, ShoppingBag, Sparkles, Layers, Calendar, ShoppingCart, Box, Loader2 } from "lucide-react";
+import {
+  LuTrendingUp as TrendingUp,
+  LuShoppingBag as ShoppingBag,
+  LuSparkles as Sparkles,
+  LuLayers as Layers,
+  LuCalendar as Calendar,
+  LuShoppingCart as ShoppingCart,
+  LuBox as Box,
+  LuLoaderCircle as Loader2,
+} from "react-icons/lu";
 
 // Lazy-load 3D Visualizer for instantaneous initial dashboard paint
 const Store3DVisualizer = lazy(() => import("../components/Store3DVisualizer"));
