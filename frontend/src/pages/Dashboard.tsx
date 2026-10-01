@@ -9,6 +9,7 @@ import { TrendingUp, ShoppingBag, Sparkles, Layers, Calendar, ShoppingCart, Box,
 
 // Lazy-load 3D Visualizer for instantaneous initial dashboard paint
 const Store3DVisualizer = lazy(() => import("../components/Store3DVisualizer"));
+const Store3DVisualizerV2 = lazy(() => import("../components/Store3DVisualizerV2"));
 
 interface VelocityRow {
   product: Product;
@@ -85,6 +86,7 @@ const Dashboard: React.FC = () => {
   const incomingSwapMode = (location.state as any)?.swapMode;
   const [summary, setSummary] = useState<Summary | null>(null);
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
+  const [visualizerMode, setVisualizerMode] = useState<"classic" | "v2">("classic");
   const [loading, setLoading] = useState(true);
   const [windowDays, setWindowDays] = useState(7);
   const [selectedProductForSale, setSelectedProductForSale] = useState<Product | null>(null);
@@ -196,13 +198,60 @@ const Dashboard: React.FC = () => {
 
       {/* 🌟 3D RETAIL STORE FLOOR PLAN VISUALIZER */}
       <div className="space-y-3">
+        {/* Visualizer Mode Toggle */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-stone-900/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-stone-800 shadow-lg">
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold uppercase tracking-wider text-stone-400">Showroom Engine:</span>
+            <div className="flex items-center gap-1.5 bg-stone-950 p-1 rounded-xl border border-stone-800">
+              <button
+                type="button"
+                onClick={() => setVisualizerMode("classic")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  visualizerMode === "classic"
+                    ? "bg-amber-500 text-stone-950 shadow-md shadow-amber-500/20"
+                    : "text-stone-400 hover:text-white"
+                }`}
+              >
+                🏛️ Classic 3D Showroom
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisualizerMode("v2")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  visualizerMode === "v2"
+                    ? "bg-gradient-to-r from-sky-500 to-indigo-500 text-white shadow-md shadow-sky-500/30"
+                    : "text-stone-400 hover:text-white"
+                }`}
+              >
+                ✨ Luxury Studio V2 (Preview)
+                <span className="text-[10px] uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded-full font-black">
+                  New
+                </span>
+              </button>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-2 text-[11px] text-stone-400">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Interactive Digital Twin</span>
+          </div>
+        </div>
+
         <Suspense fallback={<ShowroomSkeleton />}>
-          <Store3DVisualizer
-            fastMovers={summary.fastMovers}
-            recommendations={recommendations}
-            selectedPairIndex={typeof incomingPairIndex === "number" ? incomingPairIndex : undefined}
-            initialSwapMode={incomingSwapMode}
-          />
+          {visualizerMode === "classic" ? (
+            <Store3DVisualizer
+              fastMovers={summary.fastMovers}
+              recommendations={recommendations}
+              selectedPairIndex={typeof incomingPairIndex === "number" ? incomingPairIndex : undefined}
+              initialSwapMode={incomingSwapMode}
+            />
+          ) : (
+            <Store3DVisualizerV2
+              fastMovers={summary.fastMovers}
+              recommendations={recommendations}
+              selectedPairIndex={typeof incomingPairIndex === "number" ? incomingPairIndex : undefined}
+              initialSwapMode={incomingSwapMode}
+            />
+          )}
         </Suspense>
       </div>
 
