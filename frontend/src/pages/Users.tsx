@@ -1,4 +1,5 @@
 import { useEffect, useState, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import api from "../services/api";
 import {
   LuShieldCheck as ShieldCheck,
@@ -92,6 +93,17 @@ const Users = () => {
   useEffect(() => {
     load();
   }, []);
+
+  // Lock body scroll and guarantee full viewport coverage when modal is open
+  useEffect(() => {
+    if (showAddModal) {
+      const prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = prevOverflow;
+      };
+    }
+  }, [showAddModal]);
 
   const changeRole = async (id: string, newRole: string, userName: string) => {
     try {
@@ -271,108 +283,110 @@ const Users = () => {
         </table>
       </div>
 
-      {/* Add New Team Member Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-950/70 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl border border-[#E5D7BE] shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between pb-3 border-b border-[#E5D7BE]">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold">
-                  <UserPlus className="w-5 h-5" />
+      {/* Add New Team Member Modal rendered to document.body for full viewport blur coverage */}
+      {showAddModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-md">
+            <div className="bg-white rounded-3xl border border-[#E5D7BE] shadow-2xl max-w-md w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
+              <div className="flex items-center justify-between pb-3 border-b border-[#E5D7BE]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center font-bold">
+                    <UserPlus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-sm text-stone-900">Add New Team Member</h3>
+                    <p className="text-[11px] text-stone-500">Create an authenticated employee in MongoDB</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-black text-sm text-stone-900">Add New Team Member</h3>
-                  <p className="text-[11px] text-stone-500">Create an authenticated employee in MongoDB</p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowAddModal(false)}
-                className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Full Name</label>
-                <div className="relative">
-                  <User className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                  <input
-                    type="text"
-                    required
-                    value={newName}
-                    onChange={(e) => setNewName(e.target.value)}
-                    placeholder="e.g. Rachel Adams"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Work Email</label>
-                <div className="relative">
-                  <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                  <input
-                    type="email"
-                    required
-                    value={newEmail}
-                    onChange={(e) => setNewEmail(e.target.value)}
-                    placeholder="e.g. rachel@velocity.com"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Initial Password</label>
-                <div className="relative">
-                  <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
-                  <input
-                    type="password"
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-xs font-bold text-stone-700 block mb-1">Assigned Store Role</label>
-                <select
-                  value={newRole}
-                  onChange={(e) => setNewRole(e.target.value as any)}
-                  className="w-full px-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer font-bold"
-                >
-                  <option value="staff">Staff Cashier (POS & Sales Access)</option>
-                  <option value="manager">Floor Manager (Inventory & Merchandising)</option>
-                  <option value="admin">Store Administrator (Full Control)</option>
-                </select>
-              </div>
-
-              <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#E5D7BE]">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 transition-colors"
+                  className="w-8 h-8 rounded-full hover:bg-stone-100 flex items-center justify-center text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-600/20 transition-all disabled:opacity-50 cursor-pointer"
-                >
-                  {submitting ? "Creating..." : "Save Member to MongoDB"}
+                  <X className="w-4 h-4" />
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">Full Name</label>
+                  <div className="relative">
+                    <User className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                    <input
+                      type="text"
+                      required
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="e.g. Rachel Adams"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">Work Email</label>
+                  <div className="relative">
+                    <Mail className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                    <input
+                      type="email"
+                      required
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="e.g. rachel@velocity.com"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">Initial Password</label>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-stone-400 absolute left-3 top-2.5" />
+                    <input
+                      type="password"
+                      required
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="••••••••"
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-orange-500/40"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-xs font-bold text-stone-700 block mb-1">Assigned Store Role</label>
+                  <select
+                    value={newRole}
+                    onChange={(e) => setNewRole(e.target.value as any)}
+                    className="w-full px-3 py-2 text-xs rounded-xl border border-[#E5D7BE] bg-[#FAF5EE] text-stone-900 focus:outline-none focus:ring-2 focus:ring-orange-500/40 cursor-pointer font-bold"
+                  >
+                    <option value="staff">Staff Cashier (POS & Sales Access)</option>
+                    <option value="manager">Floor Manager (Inventory & Merchandising)</option>
+                    <option value="admin">Store Administrator (Full Control)</option>
+                  </select>
+                </div>
+
+                <div className="pt-2 flex items-center justify-end gap-2.5 border-t border-[#E5D7BE]">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="px-4 py-2 rounded-xl text-xs font-bold bg-orange-600 hover:bg-orange-700 text-white shadow-md shadow-orange-600/20 transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {submitting ? "Creating..." : "create User"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
